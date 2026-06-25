@@ -1,0 +1,1488 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light only">
+<title>凍船 ETD / ETA 排程表</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    color-scheme: light;
+    --navy:#2A3582;
+    --navy-deep:#1B2459;
+    --teal:#1F3D8C;
+    --cream:#EEF1F8;
+    --paper:#FFFFFF;
+    --brass:#EB670E;
+    --slate:#5A6A8C;
+    --coral:#D14B3D;
+    --sea:#2E8B57;
+    --ink:#1B2350;
+    --ink-light:#5A6A8C;
+    --line:#D7DEEA;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background-color:var(--cream);
+    background-image:
+      linear-gradient(rgba(42,53,130,.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(42,53,130,.06) 1px, transparent 1px);
+    background-size:26px 26px;
+    color:var(--ink);
+    font-family:'Inter',sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .mono{font-family:'JetBrains Mono',monospace;}
+  .display{font-family:'Oswald',sans-serif;}
+
+  /* ---------- Header ---------- */
+  header.app-header{
+    background-color:var(--navy);
+    background-image:
+      linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px),
+      linear-gradient(135deg,var(--navy) 0%,var(--teal) 100%);
+    background-size:24px 24px, 24px 24px, auto;
+    color:var(--paper);
+    padding:22px 18px 18px;
+    position:sticky; top:0; z-index:30;
+    box-shadow:0 2px 10px rgba(27,36,89,.3);
+  }
+  .header-row{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:12px;
+  }
+  .app-title{
+    font-family:'Oswald',sans-serif;
+    font-weight:600;
+    font-size:20px;
+    letter-spacing:.5px;
+    margin:0;
+  }
+  .app-sub{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    color:#BFD3E0;
+    margin-top:4px;
+    letter-spacing:.5px;
+  }
+  .sync-badge{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    display:flex; align-items:center; gap:6px;
+    white-space:nowrap;
+    color:#D9E4EA;
+    cursor:pointer;
+  }
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--brass);flex:none;}
+  .dot.ok{background:#7FC79A;}
+  .dot.err{background:var(--coral);}
+  .dot.busy{background:#FBC89A; animation:pulse 1s infinite;}
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+
+  /* ---------- Tabs ---------- */
+  nav.tabs{
+    display:flex; gap:4px; margin-top:18px;
+    border-bottom:1px solid rgba(255,255,255,.18);
+  }
+  nav.tabs button{
+    background:none; border:none; cursor:pointer;
+    color:#C7D6E0;
+    font-family:'Inter',sans-serif;
+    font-weight:600;
+    font-size:13px;
+    padding:9px 14px 11px;
+    border-bottom:3px solid transparent;
+    transition:color .15s ease, border-color .15s ease;
+  }
+  nav.tabs button.active{
+    color:#fff;
+    border-bottom-color:var(--brass);
+  }
+  nav.tabs button:hover{color:#fff;}
+
+  main{ max-width:920px; margin:0 auto; padding:18px 14px 60px; }
+  .panel{ display:none; }
+  .panel.active{ display:block; animation:fade .2s ease; }
+  @keyframes fade{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+
+  /* ---------- Calendar ---------- */
+  .cal-controls{
+    display:flex; align-items:center; justify-content:space-between;
+    margin-bottom:12px;
+  }
+  .cal-controls .label{ font-family:'Oswald',sans-serif; font-size:18px; font-weight:600; color:var(--navy); }
+  .cal-nav-btn{
+    background:var(--paper); border:1px solid var(--line); color:var(--navy);
+    width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:15px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .cal-nav-btn:hover{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .cal-grid{
+    display:grid; grid-template-columns:repeat(7,1fr);
+    border:1px solid var(--line);
+    border-radius:var(--radius);
+    overflow:hidden;
+    background:var(--line);
+    gap:1px;
+  }
+  .cal-weekday{
+    background:var(--navy); color:#D9E4EA;
+    text-align:center; font-size:11px; font-weight:600; padding:7px 0;
+    font-family:'JetBrains Mono',monospace;
+  }
+  .cal-weekday.weekend{ color:#FBC89A; }
+  .cal-day{
+    background:var(--paper); min-height:82px; padding:5px 5px 6px;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .cal-day.empty{ background:#E4E9F4; }
+  .cal-day.today{ outline:2px solid var(--brass); outline-offset:-2px; }
+  .cal-daynum{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-light); }
+  .cal-event{
+    font-size:10px; line-height:1.25; padding:2px 4px; border-radius:4px;
+    border-left:3px solid var(--brass);
+    background:#E8EDF9; color:var(--ink);
+    overflow:hidden; white-space:nowrap; text-overflow:ellipsis;
+  }
+  .legend{ display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+  .legend-item{ display:flex; align-items:center; gap:6px; font-size:12px; color:var(--ink-light); }
+  .legend-swatch{ width:10px; height:10px; border-radius:3px; }
+
+  /* ---------- Voyage list ---------- */
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .toolbar .title{ font-family:'Oswald',sans-serif; font-size:18px; color:var(--navy); }
+  .btn-primary{
+    background:var(--navy); color:#fff; border:none; border-radius:8px;
+    padding:9px 14px; font-weight:600; font-size:13px; cursor:pointer;
+    font-family:'Inter',sans-serif;
+  }
+  .btn-primary:hover{ background:var(--teal); }
+  .btn-ghost{
+    background:none; border:1px solid var(--line); color:var(--ink);
+    border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer;
+  }
+  .btn-ghost:hover{ border-color:var(--navy); }
+  .voyage-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 14px; margin-bottom:10px;
+    border-left:4px solid var(--brass);
+  }
+  .voyage-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+  .voyage-vessel{ font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; color:var(--navy); }
+  .voyage-tonnage{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-light); margin-left:6px; }
+  .status-pill{
+    font-size:11px; font-weight:600; padding:3px 9px; border-radius:99px;
+    font-family:'Inter',sans-serif; white-space:nowrap;
+  }
+  .voyage-route{
+    font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--ink-light);
+    margin-top:6px; line-height:1.6;
+  }
+  .voyage-route b{ color:var(--ink); font-weight:600; }
+  .voyage-notes{ font-size:12px; color:var(--ink-light); margin-top:6px; font-style:italic; }
+  .voyage-actions{ display:flex; gap:8px; margin-top:10px; }
+  /* 漁船 chips */
+  .cargo-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
+  .cargo-chip{
+    display:inline-flex; align-items:center; gap:4px;
+    background:#EEF1F8; border:1px solid var(--line); border-radius:99px;
+    padding:3px 9px; font-size:11px; color:var(--ink);
+    font-family:'JetBrains Mono',monospace;
+  }
+  .cargo-chip-name{ color:var(--navy); font-weight:600; }
+  .cargo-chip-mt{ color:var(--brass); }
+  .cargo-chip-buyer{ color:var(--ink-light); }
+  /* 檢視 modal */
+  .view-modal-table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+  .view-modal-table th{
+    background:var(--navy); color:#fff; padding:6px 8px; text-align:left;
+    font-family:'Inter',sans-serif; font-weight:600; font-size:11px;
+  }
+  .view-modal-table td{ padding:7px 8px; border-bottom:1px solid var(--line); color:var(--ink); }
+  .view-modal-table tr:last-child td{ border-bottom:none; }
+  .view-modal-table .td-mt{ font-family:'JetBrains Mono',monospace; color:var(--brass); font-weight:600; }
+  .view-modal-total{
+    display:flex; justify-content:flex-end; align-items:center; gap:8px;
+    margin-top:10px; padding-top:8px; border-top:2px solid var(--navy);
+    font-family:'Oswald',sans-serif; font-size:15px; color:var(--navy);
+  }
+  .view-modal-total span{ font-size:20px; color:var(--brass); }
+  .empty-state{
+    text-align:center; padding:40px 16px; color:var(--ink-light);
+    border:1px dashed var(--line); border-radius:var(--radius); font-size:13px;
+  }
+
+  /* ---------- Master data ---------- */
+  .md-section{ background:var(--paper); border:1px solid var(--line); border-radius:var(--radius); padding:14px; margin-bottom:14px; }
+  .md-section h3{ font-family:'Oswald',sans-serif; font-size:15px; color:var(--navy); margin:0 0 10px; }
+  .chip-row{ display:flex; flex-wrap:wrap; gap:8px; margin-bottom:10px; }
+  .chip{
+    display:flex; align-items:center; gap:6px;
+    background:#E8EDF9; border:1px solid var(--line); border-radius:99px;
+    padding:5px 6px 5px 12px; font-size:12px; color:var(--ink);
+  }
+  .chip button{
+    background:var(--ink-light); color:#fff; border:none; border-radius:50%;
+    width:16px; height:16px; font-size:10px; line-height:1; cursor:pointer;
+  }
+  .add-row{ display:flex; gap:6px; flex-wrap:wrap; }
+  .add-row input{
+    flex:1 1 90px; min-width:0; border:1px solid var(--line); border-radius:7px; padding:7px 9px; font-size:13px;
+    font-family:'Inter',sans-serif;
+  }
+  .add-row button{ flex:1 1 100%; white-space:nowrap; order:99; margin-top:2px; }
+  @media(min-width:420px){
+    .add-row button{ flex:0 0 auto; order:0; margin-top:0; }
+  }
+  .reset-row{ text-align:right; margin-top:6px; }
+  .reset-row a{ font-size:11px; color:var(--coral); cursor:pointer; text-decoration:underline; }
+
+  /* ---------- Modal ---------- */
+  .modal-backdrop{
+    position:fixed; inset:0; background:rgba(27,36,89,.55);
+    display:none; align-items:flex-end; justify-content:center; z-index:50;
+  }
+  .modal-backdrop.show{ display:flex; }
+  .modal{
+    background:var(--paper); width:100%; max-width:480px;
+    border-radius:16px 16px 0 0; padding:18px 18px 24px; max-height:88vh; overflow-y:auto;
+  }
+  @media(min-width:560px){
+    .modal-backdrop{ align-items:center; }
+    .modal{ border-radius:14px; }
+  }
+  .modal h3{ font-family:'Oswald',sans-serif; color:var(--navy); margin:0 0 14px; font-size:17px; }
+  .field{ margin-bottom:12px; }
+  .field label{ display:block; font-size:12px; font-weight:600; color:var(--ink-light); margin-bottom:4px; }
+  .field select, .field input, .field textarea{
+    width:100%; border:1px solid var(--line); border-radius:7px; padding:8px 9px;
+    font-size:13px; font-family:'Inter',sans-serif; background:#fff;
+  }
+  .field textarea{ resize:vertical; min-height:50px; }
+  /* 卸貨港群組 */
+  .discharge-group{
+    border:1px solid var(--line); border-radius:8px; padding:10px; margin-bottom:8px; background:#FAFBFE;
+  }
+  .discharge-group-label{
+    font-size:11px; font-weight:700; color:var(--navy); margin-bottom:8px;
+    font-family:'Inter',sans-serif; letter-spacing:.3px;
+  }
+  .discharge-group .field{ margin-bottom:8px; }
+  .discharge-group .field:last-child{ margin-bottom:0; }
+  .cargo-section > label{ display:block; font-size:12px; font-weight:600; color:var(--ink-light); margin-bottom:6px; }
+  .cargo-row{ border:1px solid var(--line); border-radius:8px; padding:8px; margin-bottom:8px; background:#FAFBFE; }
+  .cargo-row-top{ display:flex; gap:6px; align-items:center; margin-bottom:6px; }
+  .cargo-row-top input{ flex:1; }
+  .cargo-row-bottom{ display:flex; gap:6px; }
+  .cargo-row-bottom input{ flex:1; }
+  .cargo-row input{
+    border:1px solid var(--line); border-radius:6px; padding:6px 8px; font-size:12px;
+    font-family:'Inter',sans-serif; background:#fff;
+  }
+  .cargo-remove{ background:none; border:none; color:var(--coral); font-size:16px; cursor:pointer; flex:none; width:22px; line-height:1; }
+  .add-cargo-btn{
+    background:none; border:1px dashed var(--line); color:var(--navy); border-radius:7px;
+    padding:7px 10px; font-size:12px; cursor:pointer; width:100%; font-family:'Inter',sans-serif;
+  }
+  .add-cargo-btn:hover{ border-color:var(--navy); background:rgba(42,53,130,.06); }
+  .modal-actions{ display:flex; gap:8px; margin-top:16px; }
+  .modal-actions .btn-primary{ flex:1; }
+  .btn-delete{
+    background:none; color:var(--coral); border:1px solid var(--coral);
+    border-radius:8px; padding:9px 14px; font-size:13px; cursor:pointer;
+  }
+  .status-banner{
+    display:none; align-items:center; gap:8px;
+    background:#FFF6E9; border-bottom:1px solid #F0D9B5;
+    color:#8A5A1B; font-size:12px; font-family:'JetBrains Mono',monospace;
+    padding:8px 14px;
+  }
+  .status-banner.show{ display:flex; cursor:pointer; }
+  .status-banner.err{ background:#FBEAEA; border-bottom-color:#E8C5C4; color:#9C3D3A; }
+  .status-banner a{ color:inherit; text-decoration:underline; cursor:pointer; font-weight:600; margin-left:auto; flex:none; }
+
+  /* ---------- Custom dialog ---------- */
+  .dlg-backdrop{
+    position:fixed; inset:0; background:rgba(27,36,89,.55);
+    display:none; align-items:center; justify-content:center; z-index:90; padding:18px;
+  }
+  .dlg-backdrop.show{ display:flex; }
+  .dlg-box{
+    background:var(--paper); width:100%; max-width:380px; border-radius:14px;
+    padding:18px 18px 16px;
+  }
+  .dlg-msg{ font-size:14px; color:var(--ink); line-height:1.6; white-space:pre-wrap; margin:0 0 16px; }
+  .dlg-box input{
+    width:100%; border:1px solid var(--line); border-radius:7px; padding:8px 9px;
+    font-size:13px; font-family:'Inter',sans-serif; margin-bottom:16px;
+  }
+  .dlg-actions{ display:flex; gap:8px; justify-content:flex-end; }
+  .dlg-actions button{
+    border-radius:8px; padding:8px 16px; font-size:13px; cursor:pointer; font-family:'Inter',sans-serif; font-weight:600;
+  }
+  .dlg-btn-cancel{ background:none; border:1px solid var(--line); color:var(--ink); }
+  .dlg-btn-ok{ background:var(--navy); border:none; color:#fff; }
+  .toast-stack{ position:fixed; left:0; right:0; bottom:18px; display:flex; flex-direction:column; align-items:center; gap:8px; z-index:95; padding:0 14px; pointer-events:none; }
+  .toast{
+    background:var(--navy-deep); color:#fff; font-size:13px; padding:10px 16px; border-radius:99px;
+    box-shadow:0 4px 14px rgba(27,36,89,.35); max-width:90vw; text-align:center;
+  }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+  // -------- Firebase Firestore REST API --------
+  (function(){
+    var PROJECT = 'vessel-tracker-c5341';
+    var API_KEY = 'AIzaSyDP6AIh6YMJyjS6PPvBar7asXXW0aoIwpA';
+    var BASE = 'https://firestore.googleapis.com/v1/projects/' + PROJECT + '/databases/(default)/documents/data/';
+
+    window.__fbGet = async function(key){
+      var res = await fetch(BASE + key + '?key=' + API_KEY);
+      if(res.status === 404) return null;
+      if(!res.ok) throw new Error('Firestore GET failed: ' + res.status);
+      var json = await res.json();
+      var fields = json.fields || {};
+      if(!fields.value) return null;
+      return fields.value.stringValue;
+    };
+
+    window.__fbSet = async function(key, value){
+      var body = { fields: { value: { stringValue: value } } };
+      var res = await fetch(BASE + key + '?key=' + API_KEY, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if(!res.ok) throw new Error('Firestore SET failed: ' + res.status);
+    };
+
+    window.__fbReady = true;
+    window.dispatchEvent(new Event('fbReady'));
+  })();
+</script>
+</head>
+<body>
+
+<div id="statusBanner" class="status-banner"><span id="statusBannerText">正在連接雲端資料庫…</span></div>
+
+<header class="app-header">
+  <div class="header-row">
+    <div>
+      <p class="app-title">凍船排程 ／ ETD・ETA LOG</p>
+      <p class="app-sub" id="todayLabel">—</p>
+    </div>
+    <div class="sync-badge" id="syncBadge"><span class="dot" id="syncDot"></span><span id="syncText">同步中</span></div>
+  </div>
+  <nav class="tabs">
+    <button data-tab="calendar" class="active">月曆檢視</button>
+    <button data-tab="list">航次列表</button>
+    <button data-tab="master">基礎資料</button>
+  </nav>
+</header>
+
+<main>
+
+  <!-- Calendar Panel -->
+  <section class="panel active" id="panel-calendar">
+    <div class="cal-controls">
+      <button class="cal-nav-btn" id="prevMonth">‹</button>
+      <span class="label" id="monthLabel">—</span>
+      <button class="cal-nav-btn" id="nextMonth">›</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="legend" id="legend"></div>
+  </section>
+
+  <!-- Voyage List Panel -->
+  <section class="panel" id="panel-list">
+    <div class="toolbar">
+      <span class="title">航次列表</span>
+      <button class="btn-primary" id="addVoyageBtn">+ 新增航次</button>
+    </div>
+    <div id="voyageListContainer"></div>
+  </section>
+
+  <!-- Master Data Panel -->
+  <section class="panel" id="panel-master">
+    <div class="md-section">
+      <h3>凍船清單</h3>
+      <div class="chip-row" id="vesselChips"></div>
+      <div class="add-row">
+        <input type="text" id="newVesselInput" placeholder="船名，例如 Sein Honor">
+        <button class="btn-primary" id="addVesselBtn">新增</button>
+      </div>
+    </div>
+    <div class="md-section">
+      <h3>轉載港清單</h3>
+      <div class="chip-row" id="transshipChips"></div>
+      <div class="add-row">
+        <input type="text" id="newTransshipInput" placeholder="輸入港口，例如 Rabaul">
+        <button class="btn-primary" id="addTransshipBtn">新增</button>
+      </div>
+    </div>
+    <div class="md-section">
+      <h3>卸貨港清單</h3>
+      <div class="chip-row" id="dischargeChips"></div>
+      <div class="add-row">
+        <input type="text" id="newDischargeNameInput" placeholder="港口，例如 Gensan">
+        <input type="text" id="newDischargeCountryInput" placeholder="國家，例如 菲律賓">
+        <button class="btn-primary" id="addDischargeBtn">新增</button>
+      </div>
+      <div class="reset-row"><a id="resetBtn">重置為範例資料</a></div>
+    </div>
+    <div class="md-section">
+      <h3>資料備份（雲端不穩時的保險）</h3>
+      <p style="font-size:12px; color:var(--ink-light); margin:0 0 10px;">雲端同步異常時，所有新增/編輯只存在這台裝置上、重新整理就會消失。建議先匯出一份存起來，等同步恢復後再匯入回去。</p>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button class="btn-primary" id="exportBtn">↓ 匯出目前資料（JSON）</button>
+        <button class="btn-ghost" id="importBtn">↑ 匯入 JSON 還原資料</button>
+        <button class="btn-ghost" id="exportExcelBtn">↓ 匯出 Excel（離線分析）</button>
+        <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
+      </div>
+    </div>
+    <div class="md-section">
+      <h3>儲存連線檢測</h3>
+      <p style="font-size:12px; color:var(--ink-light); margin:0 0 10px;">如果一直顯示「讀取失敗」，按這個按鈕跑一次檢測，把結果截圖回報即可，不需要再開 Console。</p>
+      <button class="btn-ghost" id="diagBtn">執行檢測</button>
+      <pre id="diagOutput" style="display:none; margin-top:10px; background:#FAFBFE; border:1px solid var(--line); border-radius:7px; padding:10px; font-size:11px; font-family:'JetBrains Mono',monospace; white-space:pre-wrap; word-break:break-all; color:var(--ink);"></pre>
+    </div>
+  </section>
+
+</main>
+
+<!-- Voyage modal -->
+<div class="modal-backdrop" id="voyageModalBackdrop">
+  <div class="modal">
+    <h3 id="voyageModalTitle">新增航次</h3>
+    <div class="field">
+      <label>船名</label>
+      <select id="f_vessel"></select>
+    </div>
+    <div class="field">
+      <label>轉載港</label>
+      <select id="f_transshipPort"></select>
+    </div>
+    <div class="field">
+      <label>抵轉載港 ETA</label>
+      <input type="date" id="f_etaTransship">
+    </div>
+    <div class="field">
+      <label>離轉載港 ETD</label>
+      <input type="date" id="f_etdTransship">
+    </div>
+
+    <!-- 卸貨港 1 -->
+    <div class="discharge-group">
+      <div class="discharge-group-label">卸貨港 1</div>
+      <div class="field">
+        <label>港口</label>
+        <select id="f_dischargePort1"></select>
+      </div>
+      <div class="field">
+        <label>抵卸貨港 ETA</label>
+        <input type="date" id="f_etaDischarge1">
+      </div>
+      <div class="field">
+        <label>離卸貨港 ETD</label>
+        <input type="date" id="f_etdDischarge1">
+      </div>
+    </div>
+
+    <!-- 卸貨港 2（可選） -->
+    <div class="discharge-group" id="dischargeGroup2" style="display:none;">
+      <div class="discharge-group-label">卸貨港 2</div>
+      <div class="field">
+        <label>港口</label>
+        <select id="f_dischargePort2"></select>
+      </div>
+      <div class="field">
+        <label>抵卸貨港 ETA</label>
+        <input type="date" id="f_etaDischarge2">
+      </div>
+    </div>
+    <button type="button" class="btn-ghost" id="toggleDischarge2Btn" style="width:100%; margin-bottom:12px; font-size:12px;">＋ 新增第二卸貨港</button>
+
+    <div class="field cargo-section">
+      <label>轉載漁船與買主（一個航次可能對接多艘漁船，可分別新增）</label>
+      <div id="cargoEntriesList"></div>
+      <button type="button" class="add-cargo-btn" id="addCargoRowBtn">＋ 新增漁船</button>
+    </div>
+    <div class="field">
+      <label>狀態</label>
+      <select id="f_status">
+        <option>待確認</option>
+        <option>已確認</option>
+        <option>航行中</option>
+        <option>已抵達</option>
+        <option>延誤</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>備註</label>
+      <textarea id="f_notes" placeholder="選填"></textarea>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-ghost" id="cancelVoyageBtn">取消</button>
+      <button class="btn-delete" id="deleteVoyageBtn" style="display:none;">刪除</button>
+      <button class="btn-primary" id="saveVoyageBtn">儲存</button>
+    </div>
+  </div>
+</div>
+
+<!-- View cargo detail modal -->
+<div class="modal-backdrop" id="viewCargoBackdrop">
+  <div class="modal">
+    <h3 id="viewCargoTitle">漁船明細</h3>
+    <div id="viewCargoBody"></div>
+    <div class="modal-actions">
+      <button class="btn-primary" id="closeViewCargoBtn">關閉</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom dialog -->
+<div class="dlg-backdrop" id="dlgBackdrop">
+  <div class="dlg-box">
+    <p class="dlg-msg" id="dlgMsg"></p>
+    <input type="text" id="dlgInput" style="display:none;">
+    <div class="dlg-actions">
+      <button class="dlg-btn-cancel" id="dlgCancelBtn" style="display:none;">取消</button>
+      <button class="dlg-btn-ok" id="dlgOkBtn">確定</button>
+    </div>
+  </div>
+</div>
+<div class="toast-stack" id="toastStack"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var PALETTE = ['#EB670E','#2A3582','#2E8B57','#8A4FA0','#1F8A99','#B5562B','#5A6A8C'];
+  var STATUS_COLOR = {
+    '待確認':'#5A6A8C', '已確認':'#2A3582', '航行中':'#EB670E', '已抵達':'#2E8B57', '延誤':'#D14B3D'
+  };
+
+  var DEFAULT_MASTER = {
+    vessels: [{name:'Sein Honor'}, {name:'Webo 307'}, {name:'Sein Topaz'}],
+    transshipPorts: ['Rabaul','Tarawa'],
+    dischargePorts: [{name:'Gensan', country:'菲律賓'},{name:'BKK', country:'泰國'}]
+  };
+  function normalizeMaster(m){
+    m = m || {};
+    m.vessels = (m.vessels || []).map(function(v){
+      if(typeof v === 'string') return {name:v};
+      // 去掉 tonnage（不再使用）
+      return {name: v.name};
+    });
+    m.transshipPorts = m.transshipPorts || [];
+    m.dischargePorts = m.dischargePorts || [];
+    return m;
+  }
+  function emptyMaster(){ return {vessels:[], transshipPorts:[], dischargePorts:[]}; }
+  function defaultVoyages(){
+    return [
+      {id:'v_'+Date.now()+'_1', vessel:'Sein Honor', transshipPort:'Rabaul', etaTransship:'', etdTransship:'', dischargePort:'Gensan', etaDischarge:'', etdDischarge1:'', dischargePort2:'', etaDischarge2:'', status:'待確認', notes:'', cargoEntries:[]},
+      {id:'v_'+Date.now()+'_2', vessel:'Webo 307', transshipPort:'Tarawa', etaTransship:'', etdTransship:'', dischargePort:'BKK', etaDischarge:'', etdDischarge1:'', dischargePort2:'', etaDischarge2:'', status:'待確認', notes:'', cargoEntries:[]},
+      {id:'v_'+Date.now()+'_3', vessel:'Sein Topaz', transshipPort:'Rabaul', etaTransship:'', etdTransship:'', dischargePort:'Gensan', etaDischarge:'', etdDischarge1:'', dischargePort2:'', etaDischarge2:'', status:'待確認', notes:'', cargoEntries:[]}
+    ];
+  }
+
+  var state = {
+    master: emptyMaster(),
+    voyages: [],
+    year: new Date().getFullYear(),
+    month: new Date().getMonth(),
+    editingVoyageId: null
+  };
+
+  var isModalOpen = false;
+  var hasLoadedOnce = false;
+  var WEEKDAYS = ['一','二','三','四','五','六','日'];
+
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function todayStr(){ var d=new Date(); return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate()); }
+  function vesselColor(name){
+    var idx = state.master.vessels.findIndex(function(v){ return v.name === name; });
+    if(idx < 0) idx = 0;
+    return PALETTE[idx % PALETTE.length];
+  }
+  function uid(){ return 'v_'+Date.now()+'_'+Math.floor(Math.random()*10000); }
+  function delay(ms){ return new Promise(function(res){ setTimeout(res, ms); }); }
+
+  // ---------------- Custom dialog helpers ----------------
+  var dlgBackdrop = document.getElementById('dlgBackdrop');
+  var dlgMsg = document.getElementById('dlgMsg');
+  var dlgInput = document.getElementById('dlgInput');
+  var dlgOkBtn = document.getElementById('dlgOkBtn');
+  var dlgCancelBtn = document.getElementById('dlgCancelBtn');
+
+  function uiAlert(message){
+    return new Promise(function(resolve){
+      dlgMsg.textContent = message;
+      dlgInput.style.display = 'none';
+      dlgCancelBtn.style.display = 'none';
+      dlgOkBtn.textContent = '確定';
+      dlgBackdrop.classList.add('show');
+      function onOk(){
+        dlgOkBtn.removeEventListener('click', onOk);
+        dlgBackdrop.classList.remove('show');
+        resolve();
+      }
+      dlgOkBtn.addEventListener('click', onOk);
+    });
+  }
+
+  function uiConfirm(message){
+    return new Promise(function(resolve){
+      dlgMsg.textContent = message;
+      dlgInput.style.display = 'none';
+      dlgCancelBtn.style.display = 'inline-block';
+      dlgOkBtn.textContent = '確定';
+      dlgBackdrop.classList.add('show');
+      function cleanup(result){
+        dlgOkBtn.removeEventListener('click', onOk);
+        dlgCancelBtn.removeEventListener('click', onCancel);
+        dlgBackdrop.classList.remove('show');
+        resolve(result);
+      }
+      function onOk(){ cleanup(true); }
+      function onCancel(){ cleanup(false); }
+      dlgOkBtn.addEventListener('click', onOk);
+      dlgCancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
+  function uiPrompt(message, defaultValue){
+    return new Promise(function(resolve){
+      dlgMsg.textContent = message;
+      dlgInput.style.display = 'block';
+      dlgInput.value = defaultValue || '';
+      dlgCancelBtn.style.display = 'inline-block';
+      dlgOkBtn.textContent = '確定';
+      dlgBackdrop.classList.add('show');
+      setTimeout(function(){ dlgInput.focus(); }, 50);
+      function cleanup(result){
+        dlgOkBtn.removeEventListener('click', onOk);
+        dlgCancelBtn.removeEventListener('click', onCancel);
+        dlgBackdrop.classList.remove('show');
+        resolve(result);
+      }
+      function onOk(){ cleanup(dlgInput.value); }
+      function onCancel(){ cleanup(null); }
+      dlgOkBtn.addEventListener('click', onOk);
+      dlgCancelBtn.addEventListener('click', onCancel);
+    });
+  }
+
+  function uiToast(message){
+    var stack = document.getElementById('toastStack');
+    var t = document.createElement('div');
+    t.className = 'toast';
+    t.textContent = message;
+    stack.appendChild(t);
+    setTimeout(function(){ t.remove(); }, 3200);
+  }
+
+  function setSync(statusClass, text){
+    document.getElementById('syncDot').className = 'dot ' + statusClass;
+    document.getElementById('syncText').textContent = text;
+  }
+  function setBanner(mode, text){
+    var el = document.getElementById('statusBanner');
+    if(!mode){ el.className = 'status-banner'; return; }
+    document.getElementById('statusBannerText').textContent = text;
+    el.className = 'status-banner show' + (mode === 'err' ? ' err' : '');
+  }
+
+  var pendingRetry = null;
+  var lastStorageError = '';
+
+  // 等 Firebase 模組載入完畢
+  function waitFbReady(){
+    return new Promise(function(resolve){
+      if(window.__fbReady){ resolve(); return; }
+      window.addEventListener('fbReady', function(){ resolve(); }, {once:true});
+    });
+  }
+
+  async function fbGet(key){
+    await waitFbReady();
+    var val = await window.__fbGet(key);
+    if(val === null) throw new Error('not found');
+    return JSON.parse(val);
+  }
+
+  async function fbSet(key, value){
+    await waitFbReady();
+    await window.__fbSet(key, JSON.stringify(value));
+  }
+
+  async function loadAll(){
+    var masterOk = true, voyagesOk = true;
+    var loadErrorMsg = '';
+    try{
+      state.master = normalizeMaster(await fbGet('master-data'));
+    }catch(e){
+      masterOk = false;
+      loadErrorMsg = (e && e.message) ? e.message : String(e);
+      console.error('讀取 master-data 失敗', e);
+      if(!hasLoadedOnce){
+        state.master = normalizeMaster(JSON.parse(JSON.stringify(DEFAULT_MASTER)));
+        try{ await fbSet('master-data', state.master); }catch(e2){ console.error(e2); }
+      }
+    }
+    try{
+      var v = await fbGet('voyages');
+      state.voyages = Array.isArray(v) ? v : [];
+    }catch(e){
+      voyagesOk = false;
+      if(!loadErrorMsg) loadErrorMsg = (e && e.message) ? e.message : String(e);
+      console.error('讀取 voyages 失敗', e);
+      if(!hasLoadedOnce){
+        state.voyages = defaultVoyages();
+        try{ await fbSet('voyages', state.voyages); }catch(e2){ console.error(e2); }
+      }
+    }
+    hasLoadedOnce = true;
+    if(loadErrorMsg) lastStorageError = loadErrorMsg;
+    return masterOk && voyagesOk;
+  }
+
+  async function loadAllAndRender(isRetry){
+    setBanner('loading', isRetry ? '重新連接雲端資料庫…' : '正在連接雲端資料庫…');
+    var ok = await loadAll();
+    renderCalendar(); renderVoyageList(); renderMaster();
+    if(ok){
+      pendingRetry = null;
+      setBanner(null);
+      setSync('ok', '已同步');
+    }else{
+      pendingRetry = {type:'load'};
+      setBanner('err', '讀取雲端資料失敗（' + (lastStorageError || '未知錯誤') + '），目前顯示的是本機暫存資料，點右上角重試');
+      setSync('err', '讀取失敗，點此重試');
+    }
+    return ok;
+  }
+
+  async function mutateMaster(mutatorFn){
+    setSync('busy', '同步中…');
+    try{
+      var latest;
+      try{ latest = normalizeMaster(await fbGet('master-data')); }
+      catch(e){ latest = normalizeMaster(JSON.parse(JSON.stringify(state.master))); }
+      mutatorFn(latest);
+      await fbSet('master-data', latest);
+      state.master = latest;
+      pendingRetry = null;
+      setBanner(null);
+      setSync('ok', '已同步');
+      return true;
+    }catch(e){
+      console.error('儲存 master-data 失敗', e);
+      lastStorageError = (e && e.message) ? e.message : String(e);
+      pendingRetry = {type:'master', mutatorFn: mutatorFn};
+      setBanner('err', '儲存失敗（' + (lastStorageError || '未知錯誤') + '），這筆變更只存在本機，點右上角重試');
+      setSync('err', '尚未同步，點此重試');
+      return false;
+    }
+  }
+
+  async function mutateVoyages(mutatorFn){
+    setSync('busy', '同步中…');
+    try{
+      var latest;
+      try{ var v = await fbGet('voyages'); latest = Array.isArray(v) ? v : []; }
+      catch(e){ latest = state.voyages.slice(); }
+      mutatorFn(latest);
+      await fbSet('voyages', latest);
+      state.voyages = latest;
+      pendingRetry = null;
+      setBanner(null);
+      setSync('ok', '已同步');
+      return true;
+    }catch(e){
+      console.error('儲存 voyages 失敗', e);
+      lastStorageError = (e && e.message) ? e.message : String(e);
+      pendingRetry = {type:'voyages', mutatorFn: mutatorFn};
+      setBanner('err', '儲存失敗（' + (lastStorageError || '未知錯誤') + '），這筆變更只存在本機，點右上角重試');
+      setSync('err', '尚未同步，點此重試');
+      return false;
+    }
+  }
+
+  async function retryPending(){
+    if(!pendingRetry) return;
+    if(pendingRetry.type === 'load'){
+      await loadAllAndRender(true);
+    }else if(pendingRetry.type === 'master'){
+      var ok = await mutateMaster(pendingRetry.mutatorFn);
+      if(ok){ renderMaster(); renderCalendar(); renderVoyageList(); }
+    }else if(pendingRetry.type === 'voyages'){
+      var ok2 = await mutateVoyages(pendingRetry.mutatorFn);
+      if(ok2){ renderVoyageList(); renderCalendar(); }
+    }
+  }
+  document.getElementById('syncBadge').addEventListener('click', retryPending);
+  document.getElementById('statusBanner').addEventListener('click', retryPending);
+
+  window.addEventListener('beforeunload', function(e){
+    if(pendingRetry && pendingRetry.type !== 'load'){
+      e.preventDefault();
+      e.returnValue = '';
+    }
+  });
+
+  setInterval(async function(){
+    if(isModalOpen || pendingRetry) return;
+    try{
+      var m = normalizeMaster(await fbGet('master-data'));
+      var v = await fbGet('voyages');
+      state.master = m;
+      state.voyages = Array.isArray(v) ? v : [];
+      var activeTab = document.querySelector('nav.tabs button.active').dataset.tab;
+      if(activeTab === 'calendar') renderCalendar();
+      if(activeTab === 'list') renderVoyageList();
+      if(activeTab === 'master') renderMaster();
+    }catch(e){ /* 靜默失敗 */ }
+  }, 8000);
+
+  // ---------------- Tabs ----------------
+  function initTabs(){
+    document.querySelectorAll('nav.tabs button').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        document.querySelectorAll('nav.tabs button').forEach(function(b){ b.classList.remove('active'); });
+        btn.classList.add('active');
+        var tab = btn.dataset.tab;
+        document.querySelectorAll('.panel').forEach(function(p){ p.classList.remove('active'); });
+        document.getElementById('panel-'+tab).classList.add('active');
+        if(tab === 'list') renderVoyageList();
+        if(tab === 'master') renderMaster();
+        if(tab === 'calendar') renderCalendar();
+      });
+    });
+  }
+
+  // ---------------- Calendar ----------------
+  function renderCalendar(){
+    var year = state.year, month = state.month;
+    document.getElementById('monthLabel').textContent = year + ' 年 ' + (month+1) + ' 月';
+    var grid = document.getElementById('calGrid');
+    grid.innerHTML = '';
+    WEEKDAYS.forEach(function(wd, i){
+      var el = document.createElement('div');
+      el.className = 'cal-weekday' + (i>=5 ? ' weekend':'');
+      el.textContent = wd;
+      grid.appendChild(el);
+    });
+    var firstDate = new Date(year, month, 1);
+    var startOffset = (firstDate.getDay() + 6) % 7;
+    var daysInMonth = new Date(year, month+1, 0).getDate();
+    var totalCells = Math.ceil((startOffset + daysInMonth) / 7) * 7;
+    var today = todayStr();
+
+    var eventsByDate = {};
+    state.voyages.forEach(function(v){
+      var vShort = v.vessel.length > 10 ? v.vessel.slice(0,9)+'…' : v.vessel;
+      if(v.etdTransship){
+        (eventsByDate[v.etdTransship] = eventsByDate[v.etdTransship] || []).push({vessel:v.vessel, label: vShort + ' 出·' + v.transshipPort});
+      }
+      if(v.etaTransship){
+        (eventsByDate[v.etaTransship] = eventsByDate[v.etaTransship] || []).push({vessel:v.vessel, label: vShort + ' 到·' + v.transshipPort});
+      }
+      // 卸貨港1
+      var dp1 = v.dischargePort || v.dischargePort1 || '';
+      if(v.etaDischarge || v.etaDischarge1){
+        var eta1 = v.etaDischarge || v.etaDischarge1;
+        (eventsByDate[eta1] = eventsByDate[eta1] || []).push({vessel:v.vessel, label: vShort + ' 卸1·' + dp1});
+      }
+      if(v.etdDischarge1){
+        (eventsByDate[v.etdDischarge1] = eventsByDate[v.etdDischarge1] || []).push({vessel:v.vessel, label: vShort + ' 離1·' + dp1});
+      }
+      // 卸貨港2
+      if(v.dischargePort2 && v.etaDischarge2){
+        (eventsByDate[v.etaDischarge2] = eventsByDate[v.etaDischarge2] || []).push({vessel:v.vessel, label: vShort + ' 卸2·' + v.dischargePort2});
+      }
+    });
+
+    for(var i=0;i<totalCells;i++){
+      var dayNum = i - startOffset + 1;
+      var cell = document.createElement('div');
+      if(dayNum < 1 || dayNum > daysInMonth){
+        cell.className = 'cal-day empty';
+        grid.appendChild(cell);
+        continue;
+      }
+      var dateStr = year+'-'+pad(month+1)+'-'+pad(dayNum);
+      cell.className = 'cal-day' + (dateStr === today ? ' today' : '');
+      var num = document.createElement('div');
+      num.className = 'cal-daynum';
+      num.textContent = dayNum;
+      cell.appendChild(num);
+      (eventsByDate[dateStr] || []).forEach(function(ev){
+        var chip = document.createElement('div');
+        chip.className = 'cal-event';
+        chip.style.borderLeftColor = vesselColor(ev.vessel);
+        chip.textContent = ev.label;
+        cell.appendChild(chip);
+      });
+      grid.appendChild(cell);
+    }
+
+    var legend = document.getElementById('legend');
+    legend.innerHTML = '';
+    state.master.vessels.forEach(function(v){
+      var item = document.createElement('div');
+      item.className = 'legend-item';
+      var sw = document.createElement('span');
+      sw.className = 'legend-swatch';
+      sw.style.background = vesselColor(v.name);
+      item.appendChild(sw);
+      var lbl = document.createElement('span');
+      lbl.textContent = v.name;
+      item.appendChild(lbl);
+      legend.appendChild(item);
+    });
+  }
+
+  document.getElementById('prevMonth').addEventListener('click', function(){
+    state.month--; if(state.month < 0){ state.month = 11; state.year--; }
+    renderCalendar();
+  });
+  document.getElementById('nextMonth').addEventListener('click', function(){
+    state.month++; if(state.month > 11){ state.month = 0; state.year++; }
+    renderCalendar();
+  });
+
+  // ---------------- Voyage List ----------------
+  function fmtDate(d){ return d ? d : '未填'; }
+
+  function renderVoyageList(){
+    var container = document.getElementById('voyageListContainer');
+    container.innerHTML = '';
+    if(state.voyages.length === 0){
+      container.innerHTML = '<div class="empty-state">尚無航次資料，點右上角「新增航次」開始建立。</div>';
+      return;
+    }
+    state.voyages.forEach(function(v){
+      var card = document.createElement('div');
+      card.className = 'voyage-card';
+      card.style.borderLeftColor = vesselColor(v.vessel);
+      var statusColor = STATUS_COLOR[v.status] || '#5A6A8C';
+      var entries = v.cargoEntries || [];
+      var totalCargo = entries.reduce(function(sum, c){ return sum + (c.weight != null ? Number(c.weight) : 0); }, 0);
+      var hasCargoWeight = entries.some(function(c){ return c.weight != null; });
+      var cargoLabel = hasCargoWeight ? totalCargo.toLocaleString() + ' MT' : (entries.length ? entries.length + ' 艘漁船' : '');
+
+      var chipsHtml = entries.map(function(c){
+        var namePart = c.fishingVessel ? '<span class="cargo-chip-name">'+escapeHtml(c.fishingVessel)+'</span>' : '';
+        var mtPart = c.weight != null ? '<span class="cargo-chip-mt">'+Number(c.weight).toLocaleString()+' MT</span>' : '';
+        var buyerPart = c.buyer ? '<span class="cargo-chip-buyer">→'+escapeHtml(c.buyer)+'</span>' : '';
+        return '<span class="cargo-chip">'+namePart+mtPart+buyerPart+'</span>';
+      }).join('');
+
+      // 卸貨港顯示（相容舊格式）
+      var dp1 = v.dischargePort || v.dischargePort1 || '';
+      var eta1 = v.etaDischarge || v.etaDischarge1 || '';
+      var etd1 = v.etdDischarge1 || '';
+      var dp2 = v.dischargePort2 || '';
+      var eta2 = v.etaDischarge2 || '';
+      var dischargeHtml = '<b>卸貨1</b> ' + escapeHtml(dp1) + '　ETA ' + fmtDate(eta1) + (etd1 ? ' / ETD ' + etd1 : '');
+      if(dp2) dischargeHtml += '<br><b>卸貨2</b> ' + escapeHtml(dp2) + '　ETA ' + fmtDate(eta2);
+
+      card.innerHTML =
+        '<div class="voyage-top">' +
+          '<span><span class="voyage-vessel">' + escapeHtml(v.vessel) + '</span>' + (cargoLabel ? '<span class="voyage-tonnage">' + cargoLabel + '</span>' : '') + '</span>' +
+          '<span class="status-pill" style="background:' + statusColor + '22; color:' + statusColor + ';">' + escapeHtml(v.status) + '</span>' +
+        '</div>' +
+        '<div class="voyage-route">' +
+          '<b>轉載</b> ' + escapeHtml(v.transshipPort) + '　ETA ' + fmtDate(v.etaTransship) + ' / ETD ' + fmtDate(v.etdTransship) + '<br>' +
+          dischargeHtml +
+        '</div>' +
+        (entries.length ? '<div class="cargo-chips">' + chipsHtml + '</div>' : '') +
+        (v.notes ? '<div class="voyage-notes">' + escapeHtml(v.notes) + '</div>' : '') +
+        '<div class="voyage-actions">' +
+          (entries.length ? '<button class="btn-ghost" data-view="' + v.id + '">檢視</button>' : '') +
+          '<button class="btn-ghost" data-edit="' + v.id + '">編輯</button>' +
+        '</div>';
+      container.appendChild(card);
+    });
+    container.querySelectorAll('[data-edit]').forEach(function(btn){
+      btn.addEventListener('click', function(){ openVoyageModal(btn.dataset.edit); });
+    });
+    container.querySelectorAll('[data-view]').forEach(function(btn){
+      btn.addEventListener('click', function(){ openViewCargoModal(btn.dataset.view); });
+    });
+  }
+
+  // ---------------- 檢視漁船明細 Modal ----------------
+  var viewCargoBackdrop = document.getElementById('viewCargoBackdrop');
+  document.getElementById('closeViewCargoBtn').addEventListener('click', function(){ viewCargoBackdrop.classList.remove('show'); });
+  viewCargoBackdrop.addEventListener('click', function(e){ if(e.target === viewCargoBackdrop) viewCargoBackdrop.classList.remove('show'); });
+
+  function openViewCargoModal(id){
+    var v = state.voyages.find(function(x){ return x.id === id; });
+    if(!v) return;
+    var entries = v.cargoEntries || [];
+    var totalMT = entries.reduce(function(sum, c){ return sum + (c.weight != null ? Number(c.weight) : 0); }, 0);
+    var hasWeight = entries.some(function(c){ return c.weight != null; });
+    document.getElementById('viewCargoTitle').textContent = v.vessel + ' — 漁船明細';
+    var rows = entries.map(function(c){
+      return '<tr>' +
+        '<td>' + escapeHtml(c.fishingVessel || '—') + '</td>' +
+        '<td class="td-mt">' + (c.weight != null ? Number(c.weight).toLocaleString() + ' MT' : '—') + '</td>' +
+        '<td>' + escapeHtml(c.buyer || '—') + '</td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('viewCargoBody').innerHTML =
+      '<table class="view-modal-table">' +
+        '<thead><tr><th>漁船名稱</th><th>噸數</th><th>買主</th></tr></thead>' +
+        '<tbody>' + rows + '</tbody>' +
+      '</table>' +
+      (hasWeight ? '<div class="view-modal-total">合計漁獲 <span>' + totalMT.toLocaleString() + ' MT</span></div>' : '');
+    viewCargoBackdrop.classList.add('show');
+  }
+
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function cargoRowTemplate(entry){
+    entry = entry || {fishingVessel:'', weight:null, buyer:''};
+    var div = document.createElement('div');
+    div.className = 'cargo-row';
+    div.innerHTML =
+      '<div class="cargo-row-top">' +
+        '<input type="text" class="cargo-fishing-vessel" placeholder="漁船名稱" value="'+escapeHtml(entry.fishingVessel)+'">' +
+        '<button type="button" class="cargo-remove">×</button>' +
+      '</div>' +
+      '<div class="cargo-row-bottom">' +
+        '<input type="number" class="cargo-weight" placeholder="漁獲噸數（選填）" min="0" value="'+escapeHtml(entry.weight!=null ? entry.weight : '')+'">' +
+        '<input type="text" class="cargo-buyer" placeholder="買主" value="'+escapeHtml(entry.buyer)+'">' +
+      '</div>';
+    div.querySelector('.cargo-remove').addEventListener('click', function(){ div.remove(); });
+    return div;
+  }
+  document.getElementById('addCargoRowBtn').addEventListener('click', function(){
+    document.getElementById('cargoEntriesList').appendChild(cargoRowTemplate());
+  });
+
+  // ---------------- 卸貨港 2 切換 ----------------
+  var discharge2Visible = false;
+  document.getElementById('toggleDischarge2Btn').addEventListener('click', function(){
+    discharge2Visible = !discharge2Visible;
+    document.getElementById('dischargeGroup2').style.display = discharge2Visible ? 'block' : 'none';
+    this.textContent = discharge2Visible ? '－ 移除第二卸貨港' : '＋ 新增第二卸貨港';
+    if(!discharge2Visible){
+      document.getElementById('f_dischargePort2').selectedIndex = 0;
+      document.getElementById('f_etaDischarge2').value = '';
+    }
+  });
+
+  // ---------------- Voyage Modal ----------------
+  var voyageBackdrop = document.getElementById('voyageModalBackdrop');
+
+  function populateSelects(){
+    var vSel = document.getElementById('f_vessel');
+    vSel.innerHTML = state.master.vessels.map(function(v){
+      return '<option value="'+escapeHtml(v.name)+'">'+escapeHtml(v.name)+'</option>';
+    }).join('');
+    var tSel = document.getElementById('f_transshipPort');
+    tSel.innerHTML = state.master.transshipPorts.map(function(p){ return '<option value="'+escapeHtml(p)+'">'+escapeHtml(p)+'</option>'; }).join('');
+    var dOpts = state.master.dischargePorts.map(function(p){ return '<option value="'+escapeHtml(p.name)+'">'+escapeHtml(p.name)+'（'+escapeHtml(p.country)+'）</option>'; }).join('');
+    document.getElementById('f_dischargePort1').innerHTML = dOpts;
+    document.getElementById('f_dischargePort2').innerHTML = dOpts;
+  }
+
+  async function openVoyageModal(id){
+    if(state.master.vessels.length === 0){ await uiAlert('請先在「基礎資料」新增至少一艘船。'); return; }
+    isModalOpen = true;
+    populateSelects();
+    state.editingVoyageId = id || null;
+    var deleteBtn = document.getElementById('deleteVoyageBtn');
+    var cargoContainer = document.getElementById('cargoEntriesList');
+    cargoContainer.innerHTML = '';
+
+    // 重置卸貨港2
+    discharge2Visible = false;
+    document.getElementById('dischargeGroup2').style.display = 'none';
+    document.getElementById('toggleDischarge2Btn').textContent = '＋ 新增第二卸貨港';
+
+    if(id){
+      var v = state.voyages.find(function(x){ return x.id === id; });
+      document.getElementById('voyageModalTitle').textContent = '編輯航次';
+      document.getElementById('f_vessel').value = v.vessel;
+      document.getElementById('f_transshipPort').value = v.transshipPort;
+      document.getElementById('f_etaTransship').value = v.etaTransship || '';
+      document.getElementById('f_etdTransship').value = v.etdTransship || '';
+      // 卸貨港1（相容舊欄位名 dischargePort/etaDischarge）
+      document.getElementById('f_dischargePort1').value = v.dischargePort1 || v.dischargePort || '';
+      document.getElementById('f_etaDischarge1').value = v.etaDischarge1 || v.etaDischarge || '';
+      document.getElementById('f_etdDischarge1').value = v.etdDischarge1 || '';
+      // 卸貨港2
+      if(v.dischargePort2){
+        discharge2Visible = true;
+        document.getElementById('dischargeGroup2').style.display = 'block';
+        document.getElementById('toggleDischarge2Btn').textContent = '－ 移除第二卸貨港';
+        document.getElementById('f_dischargePort2').value = v.dischargePort2;
+        document.getElementById('f_etaDischarge2').value = v.etaDischarge2 || '';
+      }
+      document.getElementById('f_status').value = v.status;
+      document.getElementById('f_notes').value = v.notes || '';
+      (v.cargoEntries || []).forEach(function(e){ cargoContainer.appendChild(cargoRowTemplate(e)); });
+      deleteBtn.style.display = 'inline-block';
+    }else{
+      document.getElementById('voyageModalTitle').textContent = '新增航次';
+      document.getElementById('f_vessel').selectedIndex = 0;
+      document.getElementById('f_transshipPort').selectedIndex = 0;
+      document.getElementById('f_etaTransship').value = '';
+      document.getElementById('f_etdTransship').value = '';
+      document.getElementById('f_dischargePort1').selectedIndex = 0;
+      document.getElementById('f_etaDischarge1').value = '';
+      document.getElementById('f_etdDischarge1').value = '';
+      document.getElementById('f_status').value = '待確認';
+      document.getElementById('f_notes').value = '';
+      deleteBtn.style.display = 'none';
+    }
+    voyageBackdrop.classList.add('show');
+  }
+  function closeVoyageModal(){ isModalOpen = false; voyageBackdrop.classList.remove('show'); }
+
+  document.getElementById('addVoyageBtn').addEventListener('click', function(){ openVoyageModal(null); });
+  document.getElementById('cancelVoyageBtn').addEventListener('click', closeVoyageModal);
+  voyageBackdrop.addEventListener('click', function(e){ if(e.target === voyageBackdrop) closeVoyageModal(); });
+
+  document.getElementById('saveVoyageBtn').addEventListener('click', async function(){
+    if(state.master.vessels.length === 0){ await uiAlert('請先在「基礎資料」新增至少一艘船。'); return; }
+    var cargoEntries = Array.prototype.slice.call(document.querySelectorAll('#cargoEntriesList .cargo-row')).map(function(row){
+      var weightVal = row.querySelector('.cargo-weight').value.trim();
+      return {
+        fishingVessel: row.querySelector('.cargo-fishing-vessel').value.trim(),
+        weight: weightVal ? Number(weightVal) : null,
+        buyer: row.querySelector('.cargo-buyer').value.trim()
+      };
+    }).filter(function(e){ return e.fishingVessel || e.buyer; });
+    var editingId = state.editingVoyageId;
+    var dp2val = discharge2Visible ? document.getElementById('f_dischargePort2').value : '';
+    var eta2val = discharge2Visible ? document.getElementById('f_etaDischarge2').value : '';
+    var record = {
+      id: editingId || uid(),
+      vessel: document.getElementById('f_vessel').value,
+      transshipPort: document.getElementById('f_transshipPort').value,
+      etaTransship: document.getElementById('f_etaTransship').value,
+      etdTransship: document.getElementById('f_etdTransship').value,
+      dischargePort1: document.getElementById('f_dischargePort1').value,
+      etaDischarge1: document.getElementById('f_etaDischarge1').value,
+      etdDischarge1: document.getElementById('f_etdDischarge1').value,
+      dischargePort2: dp2val,
+      etaDischarge2: eta2val,
+      // 保留舊欄位相容性
+      dischargePort: document.getElementById('f_dischargePort1').value,
+      etaDischarge: document.getElementById('f_etaDischarge1').value,
+      status: document.getElementById('f_status').value,
+      notes: document.getElementById('f_notes').value,
+      cargoEntries: cargoEntries
+    };
+    closeVoyageModal();
+    var ok = await mutateVoyages(function(list){
+      var idx = list.findIndex(function(x){ return x.id === record.id; });
+      if(idx >= 0) list[idx] = record;
+      else list.push(record);
+    });
+    renderVoyageList();
+    renderCalendar();
+    if(!ok) await uiAlert('儲存失敗，請檢查網路後點右上角「尚未同步」重試。');
+  });
+
+  document.getElementById('deleteVoyageBtn').addEventListener('click', async function(){
+    if(!(await uiConfirm('確定要刪除這筆航次紀錄嗎？'))) return;
+    var idToDelete = state.editingVoyageId;
+    closeVoyageModal();
+    var ok = await mutateVoyages(function(list){
+      var idx = list.findIndex(function(x){ return x.id === idToDelete; });
+      if(idx >= 0) list.splice(idx, 1);
+    });
+    renderVoyageList();
+    renderCalendar();
+    if(!ok) await uiAlert('刪除尚未同步，請檢查網路後點右上角重試。');
+  });
+
+  // ---------------- Master Data ----------------
+  function renderMaster(){
+    var vc = document.getElementById('vesselChips');
+    vc.innerHTML = '';
+    state.master.vessels.forEach(function(v, i){
+      var chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = '<span style="width:8px;height:8px;border-radius:50%;background:'+vesselColor(v.name)+';display:inline-block;"></span>' +
+        escapeHtml(v.name) +
+        '<button data-remove-vessel="'+i+'">×</button>';
+      vc.appendChild(chip);
+    });
+    var tc = document.getElementById('transshipChips');
+    tc.innerHTML = '';
+    state.master.transshipPorts.forEach(function(name, i){
+      var chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = escapeHtml(name) + ' <button data-remove-transship="'+i+'">×</button>';
+      tc.appendChild(chip);
+    });
+    var dc = document.getElementById('dischargeChips');
+    dc.innerHTML = '';
+    state.master.dischargePorts.forEach(function(p, i){
+      var chip = document.createElement('div');
+      chip.className = 'chip';
+      chip.innerHTML = escapeHtml(p.name) + '（' + escapeHtml(p.country) + '） <button data-remove-discharge="'+i+'">×</button>';
+      dc.appendChild(chip);
+    });
+
+    vc.querySelectorAll('[data-remove-vessel]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var name = state.master.vessels[parseInt(btn.dataset.removeVessel,10)].name;
+        var ok = await mutateMaster(function(m){
+          var idx = m.vessels.findIndex(function(x){ return x.name === name; });
+          if(idx >= 0) m.vessels.splice(idx, 1);
+        });
+        renderMaster(); renderCalendar(); renderVoyageList();
+        if(!ok) await uiAlert('刪除尚未同步，請檢查網路後重試。');
+      });
+    });
+    tc.querySelectorAll('[data-remove-transship]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var name = state.master.transshipPorts[parseInt(btn.dataset.removeTransship,10)];
+        var ok = await mutateMaster(function(m){
+          var idx = m.transshipPorts.indexOf(name);
+          if(idx >= 0) m.transshipPorts.splice(idx, 1);
+        });
+        renderMaster();
+        if(!ok) await uiAlert('刪除尚未同步，請檢查網路後重試。');
+      });
+    });
+    dc.querySelectorAll('[data-remove-discharge]').forEach(function(btn){
+      btn.addEventListener('click', async function(){
+        var name = state.master.dischargePorts[parseInt(btn.dataset.removeDischarge,10)].name;
+        var ok = await mutateMaster(function(m){
+          var idx = m.dischargePorts.findIndex(function(x){ return x.name === name; });
+          if(idx >= 0) m.dischargePorts.splice(idx, 1);
+        });
+        renderMaster();
+        if(!ok) await uiAlert('刪除尚未同步，請檢查網路後重試。');
+      });
+    });
+  }
+
+  document.getElementById('addVesselBtn').addEventListener('click', async function(){
+    var input = document.getElementById('newVesselInput');
+    var val = input.value.trim();
+    if(!val) return;
+    if(state.master.vessels.some(function(v){ return v.name === val; })){ await uiAlert('此船名已存在。'); return; }
+    input.value = '';
+    var ok = await mutateMaster(function(m){
+      if(!m.vessels.some(function(v){ return v.name === val; })){
+        m.vessels.push({name:val});
+      }
+    });
+    renderMaster(); renderCalendar();
+    if(!ok) await uiAlert('新增尚未同步，請檢查網路後點右上角重試。');
+  });
+  document.getElementById('addTransshipBtn').addEventListener('click', async function(){
+    var input = document.getElementById('newTransshipInput');
+    var val = input.value.trim();
+    if(!val) return;
+    if(state.master.transshipPorts.indexOf(val) >= 0){ await uiAlert('此港口已存在。'); return; }
+    input.value = '';
+    var ok = await mutateMaster(function(m){
+      if(m.transshipPorts.indexOf(val) < 0) m.transshipPorts.push(val);
+    });
+    renderMaster();
+    if(!ok) await uiAlert('新增尚未同步，請檢查網路後點右上角重試。');
+  });
+  document.getElementById('addDischargeBtn').addEventListener('click', async function(){
+    var nameInput = document.getElementById('newDischargeNameInput');
+    var countryInput = document.getElementById('newDischargeCountryInput');
+    var name = nameInput.value.trim();
+    var country = countryInput.value.trim();
+    if(!name) return;
+    nameInput.value = ''; countryInput.value = '';
+    var ok = await mutateMaster(function(m){
+      if(!m.dischargePorts.some(function(p){ return p.name === name; })){
+        m.dischargePorts.push({name:name, country:country || '—'});
+      }
+    });
+    renderMaster();
+    if(!ok) await uiAlert('新增尚未同步，請檢查網路後點右上角重試。');
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', async function(){
+    if(!(await uiConfirm('將清單與航次資料重置為範例資料，確定嗎？此動作無法復原。'))) return;
+    var newMaster = JSON.parse(JSON.stringify(DEFAULT_MASTER));
+    var newVoyages = defaultVoyages();
+    var ok1 = await mutateMaster(function(m){
+      m.vessels = newMaster.vessels; m.transshipPorts = newMaster.transshipPorts; m.dischargePorts = newMaster.dischargePorts;
+    });
+    var ok2 = await mutateVoyages(function(list){
+      list.length = 0;
+      newVoyages.forEach(function(v){ list.push(v); });
+    });
+    renderMaster(); renderVoyageList(); renderCalendar();
+    if(!ok1 || !ok2) await uiAlert('重置尚未完全同步，請檢查網路後重試。');
+  });
+
+  // ---------------- 備援：匯出 / 匯入 JSON ----------------
+  document.getElementById('exportBtn').addEventListener('click', function(){
+    var payload = { exportedAt: new Date().toISOString(), master: state.master, voyages: state.voyages };
+    var blob = new Blob([JSON.stringify(payload, null, 2)], {type:'application/json'});
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = '凍船排程備份_' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 2000);
+  });
+
+  // ---------------- 匯出 Excel ----------------
+  document.getElementById('exportExcelBtn').addEventListener('click', async function(){
+    if(typeof XLSX === 'undefined'){
+      await uiAlert('Excel 匯出元件載入失敗，請檢查網路連線後重新整理頁面再試一次。');
+      return;
+    }
+    var wb = XLSX.utils.book_new();
+
+    var voyageRows = state.voyages.map(function(v){
+      var dp1 = v.dischargePort1 || v.dischargePort || '';
+      var eta1 = v.etaDischarge1 || v.etaDischarge || '';
+      return {
+        '船名': v.vessel,
+        '轉載港': v.transshipPort,
+        '抵轉載港ETA': v.etaTransship || '',
+        '離轉載港ETD': v.etdTransship || '',
+        '卸貨港1': dp1,
+        '抵卸貨港1 ETA': eta1,
+        '離卸貨港1 ETD': v.etdDischarge1 || '',
+        '卸貨港2': v.dischargePort2 || '',
+        '抵卸貨港2 ETA': v.etaDischarge2 || '',
+        '狀態': v.status,
+        '備註': v.notes || ''
+      };
+    });
+    var wsVoyages = XLSX.utils.json_to_sheet(voyageRows.length ? voyageRows : [{'船名':''}]);
+    XLSX.utils.book_append_sheet(wb, wsVoyages, '航次列表');
+
+    var cargoRows = [];
+    state.voyages.forEach(function(v){
+      var dp1 = v.dischargePort1 || v.dischargePort || '';
+      (v.cargoEntries || []).forEach(function(c){
+        cargoRows.push({
+          '船名': v.vessel,
+          '轉載港': v.transshipPort,
+          '漁船名稱': c.fishingVessel,
+          '漁獲噸數': c.weight != null ? c.weight : '',
+          '買主': c.buyer
+        });
+      });
+    });
+    var wsCargo = XLSX.utils.json_to_sheet(cargoRows.length ? cargoRows : [{'船名':''}]);
+    XLSX.utils.book_append_sheet(wb, wsCargo, '轉載漁船明細');
+
+    var vesselRows = state.master.vessels.map(function(v){ return {'船名': v.name}; });
+    var wsVessels = XLSX.utils.json_to_sheet(vesselRows.length ? vesselRows : [{'船名':''}]);
+    XLSX.utils.book_append_sheet(wb, wsVessels, '凍船清單');
+
+    var portRows = [];
+    state.master.transshipPorts.forEach(function(p){ portRows.push({'類型':'轉載港', '港口':p, '國家':''}); });
+    state.master.dischargePorts.forEach(function(p){ portRows.push({'類型':'卸貨港', '港口':p.name, '國家':p.country}); });
+    var wsPorts = XLSX.utils.json_to_sheet(portRows.length ? portRows : [{'類型':''}]);
+    XLSX.utils.book_append_sheet(wb, wsPorts, '港口清單');
+
+    XLSX.writeFile(wb, '凍船排程_' + todayStr() + '.xlsx');
+    uiToast('Excel 已匯出');
+  });
+
+  document.getElementById('importBtn').addEventListener('click', function(){
+    document.getElementById('importFile').click();
+  });
+  document.getElementById('importFile').addEventListener('change', function(e){
+    var file = e.target.files[0];
+    if(!file) return;
+    var reader = new FileReader();
+    reader.onload = async function(){
+      var parsed;
+      try{ parsed = JSON.parse(reader.result); }
+      catch(err){ await uiAlert('這個檔案不是有效的 JSON，無法匯入。'); return; }
+      var importedMaster = normalizeMaster(parsed.master || emptyMaster());
+      var importedVoyages = Array.isArray(parsed.voyages) ? parsed.voyages : [];
+      if(!(await uiConfirm('匯入後會覆蓋目前畫面上的「' + importedMaster.vessels.length + ' 艘船 / ' + importedVoyages.length + ' 筆航次」資料，確定嗎？'))) return;
+      state.master = importedMaster;
+      state.voyages = importedVoyages;
+      renderMaster(); renderVoyageList(); renderCalendar();
+      var ok1 = await mutateMaster(function(m){
+        m.vessels = importedMaster.vessels; m.transshipPorts = importedMaster.transshipPorts; m.dischargePorts = importedMaster.dischargePorts;
+      });
+      var ok2 = await mutateVoyages(function(list){
+        list.length = 0;
+        importedVoyages.forEach(function(v){ list.push(v); });
+      });
+      renderMaster(); renderVoyageList(); renderCalendar();
+      await uiAlert(ok1 && ok2 ? '匯入完成，已同步到雲端。' : '匯入完成，但尚未同步到雲端（資料目前只在這台裝置上），請稍後點右上角重試。');
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  });
+
+  // ---------------- 儲存連線檢測 ----------------
+  document.getElementById('diagBtn').addEventListener('click', async function(){
+    var out = document.getElementById('diagOutput');
+    out.style.display = 'block';
+    var lines = [];
+    function log(s){ lines.push(s); out.textContent = lines.join('\n'); }
+
+    log('開始檢測… ' + new Date().toLocaleString('zh-TW'));
+    log('Firebase 模組就緒：' + (window.__fbReady ? '是' : '等待中…'));
+    try{
+      await waitFbReady();
+      log('Firebase 就緒 ✓');
+    }catch(e){
+      log('Firebase 等待逾時：' + e);
+      return;
+    }
+    var testKey = 'diag_test';
+    var testVal = { ping: Date.now() };
+    try{
+      await window.__fbSet(testKey, JSON.stringify(testVal));
+      log('✓ Firestore 寫入成功');
+    }catch(e){
+      log('✗ Firestore 寫入失敗：' + (e && e.message ? e.message : e));
+    }
+    try{
+      var result = await window.__fbGet(testKey);
+      log('✓ Firestore 讀取成功：' + result);
+    }catch(e){
+      log('✗ Firestore 讀取失敗：' + (e && e.message ? e.message : e));
+    }
+    log('檢測結束。把以上整段截圖回報即可。');
+  });
+
+  // ---------------- Init ----------------
+  async function init(){
+    initTabs();
+    var d = new Date();
+    document.getElementById('todayLabel').textContent = '今日 ' + d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+    setSync('busy', '連接中…');
+    renderCalendar();
+    renderVoyageList();
+    renderMaster();
+    await loadAllAndRender(false);
+  }
+  init();
+
+})();
+</script>
+</body>
+</html>
