@@ -331,6 +331,16 @@
     background:var(--navy-deep); color:#fff; font-size:13px; padding:10px 16px; border-radius:99px;
     box-shadow:0 4px 14px rgba(27,36,89,.35); max-width:90vw; text-align:center;
   }
+  /* 手機月曆捲動修正 */
+  body{ overflow-y:auto; -webkit-overflow-scrolling:touch; }
+  .cal-grid{ touch-action:pan-y; }
+  .cal-weekday{ touch-action:pan-y; }
+  .cal-day{ min-height:72px !important; touch-action:pan-y; }
+  .cal-event{ touch-action:pan-y; }
+  .modal-backdrop{ touch-action:none; }
+  .modal{ -webkit-overflow-scrolling:touch; touch-action:pan-y; }
+  .dlg-backdrop{ touch-action:none; }
+  nav.tabs button, .cal-nav-btn, .btn-primary, .btn-ghost, .btn-delete{ touch-action:manipulation; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
