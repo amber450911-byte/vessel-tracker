@@ -183,6 +183,69 @@
   .legend-swatch{ width:10px; height:10px; border-radius:3px; }
   .cal-hint{ font-size:11px; color:var(--ink-light); margin-bottom:8px; font-family:'JetBrains Mono',monospace; }
 
+  /* ===== 手機版月曆：列表式 ===== */
+  .cal-list{ display:none; }
+  .cal-list-day{
+    background:var(--paper); border-radius:var(--radius);
+    border:1px solid var(--line); margin-bottom:8px; overflow:hidden;
+  }
+  .cal-list-day.today{ border-color:var(--brass); border-width:2px; }
+  .cal-list-dayhead{
+    display:flex; align-items:center; gap:8px;
+    padding:8px 12px; background:#F4F6FB;
+    border-bottom:1px solid var(--line);
+  }
+  .cal-list-daynum{
+    font-family:'Oswald',sans-serif; font-size:22px; font-weight:600;
+    color:var(--navy); line-height:1; min-width:28px;
+  }
+  .cal-list-day.today .cal-list-daynum{ color:var(--brass); }
+  .cal-list-weekday{
+    font-family:'JetBrains Mono',monospace; font-size:11px;
+    color:var(--ink-light); padding-top:4px;
+  }
+  .cal-list-today-badge{
+    margin-left:auto; background:var(--brass); color:#fff;
+    font-size:10px; font-weight:700; padding:2px 7px; border-radius:99px;
+    font-family:'Inter',sans-serif;
+  }
+  .cal-list-events{ padding:6px 10px 8px; display:flex; flex-direction:column; gap:5px; }
+  .cal-list-event{
+    display:flex; align-items:center; gap:8px;
+    padding:7px 10px; border-radius:8px;
+    background:#EEF1F8; cursor:pointer;
+    touch-action:manipulation;
+    transition:background .12s;
+  }
+  .cal-list-event:active{ background:#D8DFF5; }
+  .cal-list-event-bar{
+    width:4px; height:32px; border-radius:2px; flex-shrink:0;
+  }
+  .cal-list-event-text{ flex:1; min-width:0; }
+  .cal-list-event-label{
+    font-family:'JetBrains Mono',monospace; font-size:12px;
+    color:var(--ink); font-weight:600;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .cal-list-event-sub{
+    font-size:11px; color:var(--ink-light); margin-top:1px;
+  }
+  .cal-list-event-arrow{
+    color:var(--ink-light); font-size:14px; flex-shrink:0;
+  }
+  .cal-list-empty{
+    text-align:center; padding:24px 16px;
+    color:var(--ink-light); font-size:13px;
+    border:1px dashed var(--line); border-radius:var(--radius);
+  }
+
+  @media(max-width:600px){
+    .cal-grid{ display:none; }
+    .cal-weekday{ display:none; }
+    .cal-hint{ display:none; }
+    .cal-list{ display:block; }
+  }
+
   /* ---------- Voyage list ---------- */
   .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
   .toolbar .title{ font-family:'Oswald',sans-serif; font-size:18px; color:var(--navy); }
@@ -442,6 +505,7 @@
     </div>
     <p class="cal-hint">點選日期上的事件可查看航次詳情</p>
     <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-list" id="calList"></div>
     <div class="legend" id="legend"></div>
   </section>
 
@@ -880,6 +944,76 @@
       var lbl=document.createElement('span'); lbl.textContent=v.name; item.appendChild(lbl);
       legend.appendChild(item);
     });
+    renderCalendarList();
+  }
+
+  // ---- 手機版月曆列表 ----
+  function renderCalendarList(){
+    var year=state.year, month=state.month;
+    var list=document.getElementById('calList');
+    list.innerHTML='';
+    var daysInMonth=new Date(year,month+1,0).getDate();
+    var today=todayStr();
+    var WDAYS=['日','一','二','三','四','五','六'];
+
+    // 收集每天的事件
+    var eventsByDate={};
+    state.voyages.forEach(function(v){
+      function addEv(date,label,type){
+        (eventsByDate[date]=eventsByDate[date]||[]).push({vessel:v.vessel,label:label,type:type,voyageId:v.id});
+      }
+      if(v.etdTransship) addEv(v.etdTransship, v.vessel, '出·'+v.transshipPort);
+      if(v.etaTransship) addEv(v.etaTransship, v.vessel, '到·'+v.transshipPort);
+      var dp1=v.dischargePort||v.dischargePort1||'';
+      if(v.etaDischarge||v.etaDischarge1) addEv(v.etaDischarge||v.etaDischarge1, v.vessel, '卸1·'+dp1);
+      if(v.etdDischarge1) addEv(v.etdDischarge1, v.vessel, '離1·'+dp1);
+      if(v.dischargePort2&&v.etaDischarge2) addEv(v.etaDischarge2, v.vessel, '卸2·'+v.dischargePort2);
+    });
+
+    // 只顯示有事件的天，或今天
+    var hasAny=false;
+    for(var d=1;d<=daysInMonth;d++){
+      var dateStr=year+'-'+pad(month+1)+'-'+pad(d);
+      var evs=eventsByDate[dateStr]||[];
+      var isToday=dateStr===today;
+      if(!evs.length&&!isToday) continue;
+      hasAny=true;
+
+      var dayEl=document.createElement('div');
+      dayEl.className='cal-list-day'+(isToday?' today':'');
+
+      var wday=new Date(year,month,d).getDay();
+      var head=document.createElement('div');
+      head.className='cal-list-dayhead';
+      head.innerHTML=
+        '<div class="cal-list-daynum">'+d+'</div>'+
+        '<div class="cal-list-weekday">'+WDAYS[wday]+'</div>'+
+        (isToday?'<div class="cal-list-today-badge">今天</div>':'');
+      dayEl.appendChild(head);
+
+      if(evs.length){
+        var evContainer=document.createElement('div');
+        evContainer.className='cal-list-events';
+        evs.forEach(function(ev){
+          var evEl=document.createElement('div');
+          evEl.className='cal-list-event';
+          evEl.innerHTML=
+            '<div class="cal-list-event-bar" style="background:'+vesselColor(ev.vessel)+'"></div>'+
+            '<div class="cal-list-event-text">'+
+              '<div class="cal-list-event-label">'+escapeHtml(ev.vessel)+'</div>'+
+              '<div class="cal-list-event-sub">'+escapeHtml(ev.type)+'</div>'+
+            '</div>'+
+            '<div class="cal-list-event-arrow">›</div>';
+          evEl.addEventListener('click',function(){ openVoyageDetail(ev.voyageId); });
+          evContainer.appendChild(evEl);
+        });
+        dayEl.appendChild(evContainer);
+      }
+      list.appendChild(dayEl);
+    }
+    if(!hasAny){
+      list.innerHTML='<div class="cal-list-empty">本月無航次事件</div>';
+    }
   }
 
   document.getElementById('prevMonth').addEventListener('click',function(){
