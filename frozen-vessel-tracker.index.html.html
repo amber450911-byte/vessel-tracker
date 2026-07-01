@@ -408,6 +408,43 @@
     font-family:'Inter',sans-serif; background:#fff;
   }
   .cargo-remove{ background:none; border:none; color:var(--coral); font-size:16px; cursor:pointer; flex:none; width:22px; line-height:1; touch-action:manipulation; }
+
+  /* YFN & Owner Invoice */
+  .cargo-row-yfn{ display:flex; align-items:center; gap:10px; margin-top:6px; flex-wrap:wrap; }
+  .yfn-toggle{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--ink); cursor:pointer; user-select:none; }
+  .yfn-toggle input[type=checkbox]{ width:14px; height:14px; accent-color:var(--navy); cursor:pointer; }
+  .yfn-weight-wrap{ display:none; flex:1; min-width:80px; }
+  .yfn-weight-wrap.show{ display:block; }
+  .yfn-weight-wrap input{ width:100%; }
+  .cargo-row.has-yfn{ border-color:var(--navy); }
+  .yfn-badge{
+    display:inline-block; font-size:10px; font-weight:700; color:var(--navy);
+    background:#E8EDF9; border:1px solid var(--navy); border-radius:4px;
+    padding:1px 5px; margin-left:4px; vertical-align:middle; font-family:'Inter',sans-serif;
+  }
+  .owner-invoice-toggle{
+    background:none; border:none; color:var(--ink-light); font-size:11px; cursor:pointer;
+    padding:0; text-decoration:underline; font-family:'Inter',sans-serif;
+    touch-action:manipulation;
+  }
+  .owner-invoice-wrap{ display:none; margin-top:6px; }
+  .owner-invoice-wrap.show{ display:block; }
+  .owner-invoice-wrap input{ width:100%; }
+
+  /* view modal YFN summary */
+  .view-modal-yfn{
+    display:flex; justify-content:flex-end; align-items:center; gap:8px;
+    margin-top:6px;
+    font-family:'Oswald',sans-serif; font-size:13px; color:var(--slate);
+  }
+  .view-modal-yfn span{ font-size:16px; color:var(--navy); }
+  .td-yfn-badge{
+    display:inline-block; font-size:10px; font-weight:700; color:var(--navy);
+    background:#E8EDF9; border:1px solid var(--navy); border-radius:4px;
+    padding:1px 5px; margin-left:4px; font-family:'Inter',sans-serif; vertical-align:middle;
+  }
+  .td-invoice{ font-size:11px; color:var(--ink-light); margin-top:2px; }
+
   .add-cargo-btn{
     background:none; border:1px dashed var(--line); color:var(--navy); border-radius:7px;
     padding:7px 10px; font-size:12px; cursor:pointer; width:100%; font-family:'Inter',sans-serif;
@@ -1149,15 +1186,25 @@
     var v=state.voyages.find(function(x){ return x.id===id; }); if(!v) return;
     isModalOpen=true;
     var entries=v.cargoEntries||[];
-    var totalMT=entries.reduce(function(s,c){ return s+(c.weight!=null?Number(c.weight):0); },0);
+    var totalSKJ=entries.reduce(function(s,c){ return s+(c.weight!=null?Number(c.weight):0); },0);
+    var totalYFN=entries.reduce(function(s,c){ return s+(c.hasYfn&&c.yfnWeight!=null?Number(c.yfnWeight):0); },0);
     var hasWeight=entries.some(function(c){ return c.weight!=null; });
+    var hasAnyYfn=entries.some(function(c){ return c.hasYfn; });
+    var totalAll=totalSKJ+totalYFN;
     document.getElementById('viewCargoTitle').textContent=v.vessel+' — 漁船明細';
     var rows=entries.map(function(c){
-      return '<tr><td>'+escapeHtml(c.fishingVessel||'—')+'</td><td class="td-mt">'+(c.weight!=null?Number(c.weight).toLocaleString()+' MT':'—')+'</td><td>'+escapeHtml(c.buyer||'—')+'</td></tr>';
+      var nameCell=escapeHtml(c.fishingVessel||'—')+(c.hasYfn?'<span class="td-yfn-badge">YFN</span>':'');
+      var invoiceCell=c.ownerInvoice?'<div class="td-invoice">inv: '+escapeHtml(c.ownerInvoice)+'</div>':'';
+      var mtCell=c.weight!=null?Number(c.weight).toLocaleString()+' MT':'—';
+      var yfnCell=(c.hasYfn&&c.yfnWeight!=null)?Number(c.yfnWeight).toLocaleString()+' MT':'—';
+      return '<tr><td>'+nameCell+invoiceCell+'</td><td class="td-mt">'+mtCell+'</td><td class="td-mt" style="color:var(--navy);">'+yfnCell+'</td><td>'+escapeHtml(c.buyer||'—')+'</td></tr>';
     }).join('');
+    var yfnColHeader=hasAnyYfn?'<th>YFN 噸數</th>':'';
+    var yfnColCells=hasAnyYfn?rows:rows.replace(/<td class="td-mt" style="color:var\(--navy\);">.*?<\/td>/g,'');
     document.getElementById('viewCargoBody').innerHTML=
-      '<table class="view-modal-table"><thead><tr><th>漁船名稱</th><th>噸數</th><th>買主</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      (hasWeight?'<div class="view-modal-total">合計漁獲 <span>'+totalMT.toLocaleString()+' MT</span></div>':'');
+      '<table class="view-modal-table"><thead><tr><th>漁船名稱</th><th>SKJ 噸數</th>'+(hasAnyYfn?'<th>YFN 噸數</th>':'')+'<th>買主</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      (hasWeight?'<div class="view-modal-total">合計漁獲 <span>'+totalAll.toLocaleString()+' MT</span></div>':'')+
+      (hasAnyYfn&&totalYFN>0?'<div class="view-modal-yfn">其中 YFN <span>'+totalYFN.toLocaleString()+' MT</span></div>':'');
     viewCargoBackdrop.classList.add('show');
   }
 
@@ -1166,12 +1213,38 @@
   }
 
   function cargoRowTemplate(entry){
-    entry=entry||{fishingVessel:'',weight:null,buyer:''};
-    var div=document.createElement('div'); div.className='cargo-row';
+    entry=entry||{fishingVessel:'',weight:null,buyer:'',hasYfn:false,yfnWeight:null,ownerInvoice:''};
+    var div=document.createElement('div'); div.className='cargo-row'+(entry.hasYfn?' has-yfn':'');
+    var yfnChecked=entry.hasYfn?'checked':'';
+    var yfnWrapClass=entry.hasYfn?'yfn-weight-wrap show':'yfn-weight-wrap';
+    var invoiceWrapClass=entry.ownerInvoice?'owner-invoice-wrap show':'owner-invoice-wrap';
+    var invoiceBtnText=entry.ownerInvoice?'− Owner Invoice':'+ Owner Invoice';
     div.innerHTML=
       '<div class="cargo-row-top"><input type="text" class="cargo-fishing-vessel" placeholder="漁船名稱" value="'+escapeHtml(entry.fishingVessel)+'"><button type="button" class="cargo-remove">×</button></div>'+
-      '<div class="cargo-row-bottom"><input type="number" class="cargo-weight" placeholder="漁獲噸數（選填）" min="0" value="'+escapeHtml(entry.weight!=null?entry.weight:'')+'"><input type="text" class="cargo-buyer" placeholder="買主" value="'+escapeHtml(entry.buyer)+'"></div>';
+      '<div class="cargo-row-bottom"><input type="number" class="cargo-weight" placeholder="噸數 SKJ（選填）" min="0" value="'+escapeHtml(entry.weight!=null?entry.weight:'')+'"><input type="text" class="cargo-buyer" placeholder="買主" value="'+escapeHtml(entry.buyer)+'"></div>'+
+      '<div class="cargo-row-yfn">'+
+        '<label class="yfn-toggle"><input type="checkbox" class="cargo-yfn-check" '+yfnChecked+'> YFN</label>'+
+        '<div class="'+yfnWrapClass+'"><input type="number" class="cargo-yfn-weight" placeholder="YFN 噸數" min="0" value="'+escapeHtml(entry.yfnWeight!=null?entry.yfnWeight:'')+'"></div>'+
+        '<button type="button" class="owner-invoice-toggle">'+invoiceBtnText+'</button>'+
+      '</div>'+
+      '<div class="'+invoiceWrapClass+'"><input type="text" class="cargo-owner-invoice" placeholder="Owner Invoice #" value="'+escapeHtml(entry.ownerInvoice||'')+'"></div>';
     div.querySelector('.cargo-remove').addEventListener('click',function(){ div.remove(); });
+    // YFN checkbox toggle
+    var yfnCheck=div.querySelector('.cargo-yfn-check');
+    var yfnWrap=div.querySelector('.yfn-weight-wrap');
+    yfnCheck.addEventListener('change',function(){
+      yfnWrap.classList.toggle('show',yfnCheck.checked);
+      div.classList.toggle('has-yfn',yfnCheck.checked);
+      if(!yfnCheck.checked) div.querySelector('.cargo-yfn-weight').value='';
+    });
+    // Owner Invoice toggle
+    var invBtn=div.querySelector('.owner-invoice-toggle');
+    var invWrap=div.querySelector('.owner-invoice-wrap');
+    invBtn.addEventListener('click',function(){
+      var open=invWrap.classList.toggle('show');
+      invBtn.textContent=open?'− Owner Invoice':'+ Owner Invoice';
+      if(!open) div.querySelector('.cargo-owner-invoice').value='';
+    });
     return div;
   }
   document.getElementById('addCargoRowBtn').addEventListener('click',function(){
@@ -1246,7 +1319,16 @@
     if(state.master.vessels.length===0){ await uiAlert('請先在「基礎資料」新增至少一艘船。'); return; }
     var cargoEntries=Array.prototype.slice.call(document.querySelectorAll('#cargoEntriesList .cargo-row')).map(function(row){
       var w=row.querySelector('.cargo-weight').value.trim();
-      return { fishingVessel:row.querySelector('.cargo-fishing-vessel').value.trim(), weight:w?Number(w):null, buyer:row.querySelector('.cargo-buyer').value.trim() };
+      var yw=row.querySelector('.cargo-yfn-weight').value.trim();
+      var yfnChecked=row.querySelector('.cargo-yfn-check').checked;
+      return {
+        fishingVessel:row.querySelector('.cargo-fishing-vessel').value.trim(),
+        weight:w?Number(w):null,
+        buyer:row.querySelector('.cargo-buyer').value.trim(),
+        hasYfn:yfnChecked,
+        yfnWeight:(yfnChecked&&yw)?Number(yw):null,
+        ownerInvoice:row.querySelector('.cargo-owner-invoice').value.trim()
+      };
     }).filter(function(e){ return e.fishingVessel||e.buyer; });
     var editingId=state.editingVoyageId;
     var dp2val=discharge2Visible?document.getElementById('f_dischargePort2').value:'';
@@ -1379,7 +1461,7 @@
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(voyageRows.length?voyageRows:[{'船名':''}]),'航次列表');
     var cargoRows=[];
-    state.voyages.forEach(function(v){ (v.cargoEntries||[]).forEach(function(c){ cargoRows.push({'船名':v.vessel,'轉載港':v.transshipPort,'漁船名稱':c.fishingVessel,'漁獲噸數':c.weight!=null?c.weight:'','買主':c.buyer}); }); });
+    state.voyages.forEach(function(v){ (v.cargoEntries||[]).forEach(function(c){ cargoRows.push({'船名':v.vessel,'轉載港':v.transshipPort,'漁船名稱':c.fishingVessel,'SKJ噸數':c.weight!=null?c.weight:'','YFN':c.hasYfn?'是':'','YFN噸數':(c.hasYfn&&c.yfnWeight!=null)?c.yfnWeight:'','合計噸數':(c.weight!=null||c.yfnWeight!=null)?((c.weight||0)+(c.yfnWeight||0)):'','買主':c.buyer,'Owner Invoice':c.ownerInvoice||''}); }); });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(cargoRows.length?cargoRows:[{'船名':''}]),'轉載漁船明細');
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(state.master.vessels.length?state.master.vessels.map(function(v){ return{'船名':v.name}; }):[{'船名':''}]),'凍船清單');
     var portRows=[];
