@@ -252,8 +252,19 @@
   }
 
   /* ---------- Voyage list ---------- */
-  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; }
+  .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
   .toolbar .title{ font-family:'Oswald',sans-serif; font-size:18px; color:var(--navy); }
+  .toolbar-right{ display:flex; align-items:center; gap:8px; }
+  .vessel-search-select{
+    border:1px solid var(--line); border-radius:7px; padding:8px 10px;
+    font-size:13px; font-family:'Inter',sans-serif; background:#fff; color:var(--ink);
+    max-width:200px; cursor:pointer;
+  }
+  .voyage-card.highlight-flash{ animation:highlightFlash 1.6s ease; }
+  @keyframes highlightFlash{
+    0%{ box-shadow:0 0 0 3px rgba(255,153,0,.55); }
+    100%{ box-shadow:none; }
+  }
   .btn-primary{
     background:var(--navy); color:#fff; border:none; border-radius:8px;
     padding:9px 14px; font-weight:600; font-size:13px; cursor:pointer;
@@ -555,7 +566,12 @@
   <section class="panel" id="panel-list">
     <div class="toolbar">
       <span class="title">航次列表</span>
-      <button class="btn-primary" id="addVoyageBtn">+ 新增航次</button>
+      <div class="toolbar-right">
+        <select id="vesselSearchSelect" class="vessel-search-select">
+          <option value="">🔍 搜尋船名…</option>
+        </select>
+        <button class="btn-primary" id="addVoyageBtn">+ 新增航次</button>
+      </div>
     </div>
     <div id="voyageListContainer"></div>
   </section>
@@ -1143,6 +1159,7 @@
     }
     state.voyages.forEach(function(v){
       var card=document.createElement('div');
+      card.id='voyage-card-'+v.id;
       card.className='voyage-card'; card.style.borderLeftColor=vesselColor(v.vessel);
       var statusColor=STATUS_COLOR[v.status]||'#5A6A8C';
       var entries=v.cargoEntries||[];
@@ -1175,6 +1192,30 @@
     });
     container.querySelectorAll('[data-edit]').forEach(function(btn){ btn.addEventListener('click',function(){ openVoyageModal(btn.dataset.edit); }); });
     container.querySelectorAll('[data-view]').forEach(function(btn){ btn.addEventListener('click',function(){ openViewCargoModal(btn.dataset.view); }); });
+    populateVesselSearchSelect();
+  }
+
+  // ---- 搜尋船名下拉選單 ----
+  function populateVesselSearchSelect(){
+    var sel=document.getElementById('vesselSearchSelect'); if(!sel) return;
+    var prevValue=sel.value;
+    var names=[];
+    state.voyages.forEach(function(v){ if(v.vessel && names.indexOf(v.vessel)===-1) names.push(v.vessel); });
+    names.sort(function(a,b){ return a.localeCompare(b); });
+    sel.innerHTML='<option value="">🔍 搜尋船名…</option>'+names.map(function(n){ return '<option value="'+escapeHtml(n)+'">'+escapeHtml(n)+'</option>'; }).join('');
+    if(names.indexOf(prevValue)!==-1) sel.value=prevValue; else sel.value='';
+  }
+
+  function jumpToVessel(vesselName){
+    if(!vesselName) return;
+    var target=state.voyages.find(function(v){ return v.vessel===vesselName; });
+    if(!target) return;
+    var el=document.getElementById('voyage-card-'+target.id);
+    if(!el) return;
+    el.scrollIntoView({behavior:'smooth', block:'center'});
+    el.classList.remove('highlight-flash');
+    void el.offsetWidth;
+    el.classList.add('highlight-flash');
   }
 
   // ---- 漁船明細 Modal ----
@@ -1312,6 +1353,7 @@
   function closeVoyageModal(){ isModalOpen=false; voyageBackdrop.classList.remove('show'); }
 
   document.getElementById('addVoyageBtn').addEventListener('click',function(){ openVoyageModal(null); });
+  document.getElementById('vesselSearchSelect').addEventListener('change',function(e){ jumpToVessel(e.target.value); });
   document.getElementById('cancelVoyageBtn').addEventListener('click',closeVoyageModal);
   voyageBackdrop.addEventListener('click',function(e){ if(e.target===voyageBackdrop) closeVoyageModal(); });
 
