@@ -103,6 +103,7 @@
   nav.tabs{
     display:flex; gap:4px; margin-top:18px;
     border-bottom:1px solid rgba(255,255,255,.18);
+    flex-wrap:wrap;
   }
   nav.tabs button{
     background:none; border:none; cursor:pointer;
@@ -254,7 +255,7 @@
   /* ---------- Voyage list ---------- */
   .toolbar{ display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:10px; }
   .toolbar .title{ font-family:'Oswald',sans-serif; font-size:18px; color:var(--navy); }
-  .toolbar-right{ display:flex; align-items:center; gap:8px; }
+  .toolbar-right{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .vessel-search-select{
     border:1px solid var(--line); border-radius:7px; padding:8px 10px;
     font-size:13px; font-family:'Inter',sans-serif; background:#fff; color:var(--ink);
@@ -278,14 +279,33 @@
     touch-action:manipulation;
   }
   .btn-ghost:hover{ border-color:var(--navy); }
+  .btn-ghost.is-on{ background:var(--navy); color:#fff; border-color:var(--navy); }
+  .btn-complete{
+    background:none; border:1px solid var(--sea); color:var(--sea);
+    border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer;
+    touch-action:manipulation;
+  }
+  .btn-complete:hover{ background:var(--sea); color:#fff; }
+  .btn-reopen{
+    background:none; border:1px solid var(--slate); color:var(--slate);
+    border-radius:7px; padding:6px 10px; font-size:12px; cursor:pointer;
+    touch-action:manipulation;
+  }
+  .btn-reopen:hover{ background:var(--slate); color:#fff; }
   .voyage-card{
     background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
     padding:12px 14px; margin-bottom:10px;
     border-left:4px solid var(--brass);
   }
+  .voyage-card.is-completed{ opacity:.68; }
   .voyage-top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
   .voyage-vessel{ font-family:'Oswald',sans-serif; font-size:15px; font-weight:600; color:var(--navy); }
   .voyage-tonnage{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--ink-light); margin-left:6px; }
+  .voyage-num-badge{
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:#fff;
+    background:var(--slate); border-radius:5px; padding:1px 6px; margin-left:6px;
+    vertical-align:middle;
+  }
   .status-pill{
     font-size:11px; font-weight:600; padding:3px 9px; border-radius:99px;
     font-family:'Inter',sans-serif; white-space:nowrap;
@@ -296,7 +316,7 @@
   }
   .voyage-route b{ color:var(--ink); font-weight:600; }
   .voyage-notes{ font-size:12px; color:var(--ink-light); margin-top:6px; font-style:italic; }
-  .voyage-actions{ display:flex; gap:8px; margin-top:10px; }
+  .voyage-actions{ display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
   .cargo-chips{ display:flex; flex-wrap:wrap; gap:5px; margin-top:7px; }
   .cargo-chip{
     display:inline-flex; align-items:center; gap:4px;
@@ -325,7 +345,7 @@
     font-size:11px; font-weight:700; color:var(--navy); letter-spacing:.5px;
     margin:12px 0 6px; text-transform:uppercase; font-family:'Inter',sans-serif;
   }
-  .voyage-detail-actions{ display:flex; gap:8px; margin-top:16px; }
+  .voyage-detail-actions{ display:flex; gap:8px; margin-top:16px; flex-wrap:wrap; }
   .voyage-detail-actions .btn-primary{ flex:1; }
 
   /* ---------- 檢視 modal (漁船明細) ---------- */
@@ -373,6 +393,38 @@
   }
   .reset-row{ text-align:right; margin-top:6px; }
   .reset-row a{ font-size:11px; color:var(--coral); cursor:pointer; text-decoration:underline; }
+
+  /* ---------- 航次統計 ---------- */
+  .stat-card{
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+    padding:14px; margin-bottom:12px; border-left:4px solid var(--brass);
+  }
+  .stat-card-top{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .stat-vessel{ display:flex; align-items:center; gap:8px; }
+  .stat-vessel-name{ font-family:'Oswald',sans-serif; font-size:16px; font-weight:600; color:var(--navy); }
+  .stat-swatch{ width:10px; height:10px; border-radius:3px; flex-shrink:0; }
+  .stat-nums{ display:flex; gap:14px; flex-wrap:wrap; }
+  .stat-num{ text-align:center; }
+  .stat-num b{ display:block; font-family:'Oswald',sans-serif; font-size:20px; color:var(--navy); }
+  .stat-num span{ font-size:10px; color:var(--ink-light); font-family:'JetBrains Mono',monospace; }
+  .stat-table{ width:100%; border-collapse:collapse; font-size:12px; margin-top:10px; }
+  .stat-table th{
+    text-align:left; padding:5px 6px; font-size:10px; color:var(--ink-light);
+    border-bottom:1px solid var(--line); font-family:'Inter',sans-serif; font-weight:600;
+  }
+  .stat-table td{ padding:6px 6px; border-bottom:1px solid var(--line); color:var(--ink); font-family:'JetBrains Mono',monospace; }
+  .stat-table tr:last-child td{ border-bottom:none; }
+  .stat-table tr{ cursor:pointer; }
+  .stat-table tr:hover td{ background:#F4F6FB; }
+  .stat-voyage-num-input{
+    border:1px solid var(--line); border-radius:5px; padding:3px 6px; font-size:11px;
+    width:70px; font-family:'JetBrains Mono',monospace;
+  }
+  .stat-summary-bar{
+    display:flex; gap:16px; flex-wrap:wrap; margin-bottom:14px;
+    background:var(--paper); border:1px solid var(--line); border-radius:var(--radius);
+    padding:12px 16px;
+  }
 
   /* ---------- Modal ---------- */
   .modal-backdrop{
@@ -543,6 +595,7 @@
   <nav class="tabs">
     <button data-tab="calendar" class="active">月曆檢視</button>
     <button data-tab="list">航次列表</button>
+    <button data-tab="stats">航次統計</button>
     <button data-tab="master">基礎資料</button>
   </nav>
 </header>
@@ -570,10 +623,19 @@
         <select id="vesselSearchSelect" class="vessel-search-select">
           <option value="">🔍 搜尋船名…</option>
         </select>
+        <button class="btn-ghost" id="toggleCompletedBtn">顯示已完成</button>
         <button class="btn-primary" id="addVoyageBtn">+ 新增航次</button>
       </div>
     </div>
     <div id="voyageListContainer"></div>
+  </section>
+
+  <!-- Stats Panel -->
+  <section class="panel" id="panel-stats">
+    <div class="toolbar">
+      <span class="title">航次統計</span>
+    </div>
+    <div id="statsContainer"></div>
   </section>
 
   <!-- Master Data Panel -->
@@ -640,6 +702,8 @@
     <div class="voyage-detail-actions">
       <button class="btn-ghost" id="detailEditBtn">編輯此航次</button>
       <button class="btn-primary" id="detailViewCargoBtn" style="display:none;">漁船明細</button>
+      <button class="btn-complete" id="detailCompleteBtn" style="display:none;">✓ 標記完成</button>
+      <button class="btn-reopen" id="detailReopenBtn" style="display:none;">↺ 取消完成</button>
     </div>
   </div>
 </div>
@@ -651,6 +715,10 @@
     <div class="field">
       <label>船名</label>
       <select id="f_vessel"></select>
+    </div>
+    <div class="field">
+      <label>航次編號（選填，可用來計算該船跑了第幾趟）</label>
+      <input type="text" id="f_voyageNumber" placeholder="例如 12 或 2026-V12">
     </div>
     <div class="field">
       <label>轉載港</label>
@@ -684,7 +752,7 @@
     <div class="field">
       <label>狀態</label>
       <select id="f_status">
-        <option>待確認</option><option>已確認</option><option>航行中</option><option>已抵達</option><option>延誤</option>
+        <option>待確認</option><option>已確認</option><option>航行中</option><option>已抵達</option><option>延誤</option><option>已完成</option>
       </select>
     </div>
     <div class="field">
@@ -729,7 +797,7 @@
 
   var PALETTE = ['#EB670E','#2A3582','#2E8B57','#8A4FA0','#1F8A99','#B5562B','#5A6A8C'];
   var STATUS_COLOR = {
-    '待確認':'#5A6A8C','已確認':'#2A3582','航行中':'#EB670E','已抵達':'#2E8B57','延誤':'#D14B3D'
+    '待確認':'#5A6A8C','已確認':'#2A3582','航行中':'#EB670E','已抵達':'#2E8B57','延誤':'#D14B3D','已完成':'#8A97AE'
   };
   var DEFAULT_MASTER = {
     vessels:[{name:'Sein Honor'},{name:'Webo 307'},{name:'Sein Topaz'}],
@@ -747,16 +815,17 @@
   function emptyMaster(){ return {vessels:[],transshipPorts:[],dischargePorts:[]}; }
   function defaultVoyages(){
     return [
-      {id:'v_'+Date.now()+'_1',vessel:'Sein Honor',transshipPort:'Rabaul',etaTransship:'',etdTransship:'',dischargePort:'Gensan',etaDischarge:'',etdDischarge1:'',dischargePort2:'',etaDischarge2:'',status:'待確認',notes:'',cargoEntries:[]},
-      {id:'v_'+Date.now()+'_2',vessel:'Webo 307',transshipPort:'Tarawa',etaTransship:'',etdTransship:'',dischargePort:'BKK',etaDischarge:'',etdDischarge1:'',dischargePort2:'',etaDischarge2:'',status:'待確認',notes:'',cargoEntries:[]},
-      {id:'v_'+Date.now()+'_3',vessel:'Sein Topaz',transshipPort:'Rabaul',etaTransship:'',etdTransship:'',dischargePort:'Gensan',etaDischarge:'',etdDischarge1:'',dischargePort2:'',etaDischarge2:'',status:'待確認',notes:'',cargoEntries:[]}
+      {id:'v_'+Date.now()+'_1',vessel:'Sein Honor',voyageNumber:'',transshipPort:'Rabaul',etaTransship:'',etdTransship:'',dischargePort:'Gensan',etaDischarge:'',etdDischarge1:'',dischargePort2:'',etaDischarge2:'',status:'待確認',notes:'',cargoEntries:[]},
+      {id:'v_'+Date.now()+'_2',vessel:'Webo 307',voyageNumber:'',transshipPort:'Tarawa',etaTransship:'',etdTransship:'',dischargePort:'BKK',etaDischarge:'',etdDischarge1:'',dischargePort2:'',etaDischarge2:'',status:'待確認',notes:'',cargoEntries:[]},
+      {id:'v_'+Date.now()+'_3',vessel:'Sein Topaz',voyageNumber:'',transshipPort:'Rabaul',etaTransship:'',etdTransship:'',dischargePort:'Gensan',etaDischarge:'',etdDischarge1:'',dischargePort2:'',etaDischarge2:'',status:'待確認',notes:'',cargoEntries:[]}
     ];
   }
 
   var state = {
     master:emptyMaster(), voyages:[],
     year:new Date().getFullYear(), month:new Date().getMonth(),
-    editingVoyageId:null
+    editingVoyageId:null,
+    showCompleted:false
   };
   var isModalOpen = false;
   var hasLoadedOnce = false;
@@ -769,6 +838,7 @@
     return PALETTE[(idx<0?0:idx)%PALETTE.length];
   }
   function uid(){ return 'v_'+Date.now()+'_'+Math.floor(Math.random()*10000); }
+  function isCompleted(v){ return v.status==='已完成'; }
 
   // ---- 動態補 main padding-top（因為 header 是 fixed）----
   function adjustMainPadding(){
@@ -869,7 +939,7 @@
   async function loadAllAndRender(isRetry){
     setBanner('loading',isRetry?'重新連接雲端資料庫…':'正在連接雲端資料庫…');
     var ok=await loadAll();
-    renderCalendar(); renderVoyageList(); renderMaster();
+    renderCalendar(); renderVoyageList(); renderMaster(); renderStats();
     if(ok){ pendingRetry=null; setBanner(null); setSync('ok','已同步'); }
     else{
       pendingRetry={type:'load'};
@@ -908,8 +978,8 @@
   async function retryPending(){
     if(!pendingRetry) return;
     if(pendingRetry.type==='load') await loadAllAndRender(true);
-    else if(pendingRetry.type==='master'){ var ok=await mutateMaster(pendingRetry.mutatorFn); if(ok){ renderMaster(); renderCalendar(); renderVoyageList(); } }
-    else if(pendingRetry.type==='voyages'){ var ok2=await mutateVoyages(pendingRetry.mutatorFn); if(ok2){ renderVoyageList(); renderCalendar(); } }
+    else if(pendingRetry.type==='master'){ var ok=await mutateMaster(pendingRetry.mutatorFn); if(ok){ renderMaster(); renderCalendar(); renderVoyageList(); renderStats(); } }
+    else if(pendingRetry.type==='voyages'){ var ok2=await mutateVoyages(pendingRetry.mutatorFn); if(ok2){ renderVoyageList(); renderCalendar(); renderStats(); } }
   }
   document.getElementById('syncBadge').addEventListener('click',retryPending);
   document.getElementById('statusBanner').addEventListener('click',retryPending);
@@ -924,6 +994,7 @@
       var activeTab=document.querySelector('nav.tabs button.active').dataset.tab;
       if(activeTab==='calendar') renderCalendar();
       if(activeTab==='list') renderVoyageList();
+      if(activeTab==='stats') renderStats();
       if(activeTab==='master') renderMaster();
     }catch(e){}
   },8000);
@@ -940,6 +1011,7 @@
         if(tab==='list') renderVoyageList();
         if(tab==='master') renderMaster();
         if(tab==='calendar') renderCalendar();
+        if(tab==='stats') renderStats();
       });
     });
   }
@@ -962,7 +1034,7 @@
     var today=todayStr();
 
     var eventsByDate={};
-    state.voyages.forEach(function(v){
+    state.voyages.filter(function(v){ return !isCompleted(v); }).forEach(function(v){
       var vShort=v.vessel.length>10?v.vessel.slice(0,9)+'…':v.vessel;
       function addEv(date,label){ (eventsByDate[date]=eventsByDate[date]||[]).push({vessel:v.vessel,label:label,voyageId:v.id}); }
       if(v.etdTransship) addEv(v.etdTransship, vShort+' 出·'+v.transshipPort);
@@ -1014,9 +1086,9 @@
     var today=todayStr();
     var WDAYS=['日','一','二','三','四','五','六'];
 
-    // 收集每天的事件
+    // 收集每天的事件（已完成的航次不顯示）
     var eventsByDate={};
-    state.voyages.forEach(function(v){
+    state.voyages.filter(function(v){ return !isCompleted(v); }).forEach(function(v){
       function addEv(date,label,type){
         (eventsByDate[date]=eventsByDate[date]||[]).push({vessel:v.vessel,label:label,type:type,voyageId:v.id});
       }
@@ -1092,7 +1164,7 @@
     isModalOpen=true;
 
     var statusColor=STATUS_COLOR[v.status]||'#5A6A8C';
-    document.getElementById('detailVessel').textContent=v.vessel;
+    document.getElementById('detailVessel').textContent=v.vessel+(v.voyageNumber?'　#'+v.voyageNumber:'');
     document.getElementById('detailStatusBadge').innerHTML=
       '<span class="status-pill" style="background:'+statusColor+'22;color:'+statusColor+';">'+escapeHtml(v.status)+'</span>';
 
@@ -1130,6 +1202,8 @@
     notesEl.innerHTML=v.notes?'<div class="voyage-notes" style="margin-top:10px;">'+escapeHtml(v.notes)+'</div>':'';
 
     document.getElementById('detailViewCargoBtn').style.display=entries.length?'inline-block':'none';
+    document.getElementById('detailCompleteBtn').style.display=isCompleted(v)?'none':'inline-block';
+    document.getElementById('detailReopenBtn').style.display=isCompleted(v)?'inline-block':'none';
     voyageDetailBackdrop.classList.add('show');
   }
 
@@ -1147,20 +1221,58 @@
     voyageDetailBackdrop.classList.remove('show');
     openViewCargoModal(currentDetailId);
   });
+  document.getElementById('detailCompleteBtn').addEventListener('click',async function(){
+    var id=currentDetailId;
+    isModalOpen=false; voyageDetailBackdrop.classList.remove('show');
+    await setVoyageCompleted(id,true);
+  });
+  document.getElementById('detailReopenBtn').addEventListener('click',async function(){
+    var id=currentDetailId;
+    isModalOpen=false; voyageDetailBackdrop.classList.remove('show');
+    await setVoyageCompleted(id,false);
+  });
+
+  // ---- 標記完成 / 取消完成（快速操作，不需開編輯表單）----
+  async function setVoyageCompleted(id,completed){
+    var ok=await mutateVoyages(function(list){
+      var idx=list.findIndex(function(x){ return x.id===id; });
+      if(idx>=0) list[idx].status = completed?'已完成':'已確認';
+    });
+    renderVoyageList(); renderCalendar(); renderStats();
+    if(ok) uiToast(completed?'已標記為完成，從航次列表隱藏':'已取消完成，重新顯示於航次列表');
+    else await uiAlert('更新尚未同步，請點右上角重試。');
+  }
 
   // ---- Voyage List ----
   function fmtDate(d){ return d?d:'未填'; }
 
+  document.getElementById('toggleCompletedBtn').addEventListener('click',function(){
+    state.showCompleted=!state.showCompleted;
+    this.textContent=state.showCompleted?'隱藏已完成':'顯示已完成';
+    this.classList.toggle('is-on',state.showCompleted);
+    renderVoyageList();
+  });
+
   function renderVoyageList(){
     var container=document.getElementById('voyageListContainer');
     container.innerHTML='';
+    var completedCount=state.voyages.filter(isCompleted).length;
+    var toggleBtn=document.getElementById('toggleCompletedBtn');
+    toggleBtn.textContent=(state.showCompleted?'隱藏已完成':'顯示已完成')+(completedCount?'（'+completedCount+'）':'');
+    toggleBtn.classList.toggle('is-on',state.showCompleted);
+
+    var visible=state.voyages.filter(function(v){ return state.showCompleted || !isCompleted(v); });
+
     if(state.voyages.length===0){
       container.innerHTML='<div class="empty-state">尚無航次資料，點右上角「新增航次」開始建立。</div>'; return;
     }
-    state.voyages.forEach(function(v){
+    if(visible.length===0){
+      container.innerHTML='<div class="empty-state">目前沒有進行中的航次。'+(completedCount?'（有 '+completedCount+' 筆已完成，可點上方「顯示已完成」查看）':'')+'</div>'; return;
+    }
+    visible.forEach(function(v){
       var card=document.createElement('div');
       card.id='voyage-card-'+v.id;
-      card.className='voyage-card'; card.style.borderLeftColor=vesselColor(v.vessel);
+      card.className='voyage-card'+(isCompleted(v)?' is-completed':''); card.style.borderLeftColor=vesselColor(v.vessel);
       var statusColor=STATUS_COLOR[v.status]||'#5A6A8C';
       var entries=v.cargoEntries||[];
       var totalCargo=entries.reduce(function(s,c){ return s+(c.weight!=null?Number(c.weight):0); },0);
@@ -1178,7 +1290,7 @@
       if(dp2) dHtml+='<br><b>卸貨2</b> '+escapeHtml(dp2)+'　ETA '+fmtDate(eta2);
       card.innerHTML=
         '<div class="voyage-top">'+
-          '<span><span class="voyage-vessel">'+escapeHtml(v.vessel)+'</span>'+(cargoLabel?'<span class="voyage-tonnage">'+cargoLabel+'</span>':'')+'</span>'+
+          '<span><span class="voyage-vessel">'+escapeHtml(v.vessel)+'</span>'+(v.voyageNumber?'<span class="voyage-num-badge">#'+escapeHtml(v.voyageNumber)+'</span>':'')+(cargoLabel?'<span class="voyage-tonnage">'+cargoLabel+'</span>':'')+'</span>'+
           '<span class="status-pill" style="background:'+statusColor+'22;color:'+statusColor+';">'+escapeHtml(v.status)+'</span>'+
         '</div>'+
         '<div class="voyage-route"><b>轉載</b> '+escapeHtml(v.transshipPort)+'　ETA '+fmtDate(v.etaTransship)+' / ETD '+fmtDate(v.etdTransship)+'<br>'+dHtml+'</div>'+
@@ -1187,11 +1299,14 @@
         '<div class="voyage-actions">'+
           (entries.length?'<button class="btn-ghost" data-view="'+v.id+'">檢視</button>':'')+
           '<button class="btn-ghost" data-edit="'+v.id+'">編輯</button>'+
+          (isCompleted(v)?'<button class="btn-reopen" data-reopen="'+v.id+'">↺ 取消完成</button>':'<button class="btn-complete" data-complete="'+v.id+'">✓ 標記完成</button>')+
         '</div>';
       container.appendChild(card);
     });
     container.querySelectorAll('[data-edit]').forEach(function(btn){ btn.addEventListener('click',function(){ openVoyageModal(btn.dataset.edit); }); });
     container.querySelectorAll('[data-view]').forEach(function(btn){ btn.addEventListener('click',function(){ openViewCargoModal(btn.dataset.view); }); });
+    container.querySelectorAll('[data-complete]').forEach(function(btn){ btn.addEventListener('click',function(){ setVoyageCompleted(btn.dataset.complete,true); }); });
+    container.querySelectorAll('[data-reopen]').forEach(function(btn){ btn.addEventListener('click',function(){ setVoyageCompleted(btn.dataset.reopen,false); }); });
     populateVesselSearchSelect();
   }
 
@@ -1208,8 +1323,14 @@
 
   function jumpToVessel(vesselName){
     if(!vesselName) return;
-    var target=state.voyages.find(function(v){ return v.vessel===vesselName; });
-    if(!target) return;
+    var target=state.voyages.find(function(v){ return v.vessel===vesselName && (state.showCompleted || !isCompleted(v)); });
+    if(!target){
+      // 若目標航次是已完成且目前隱藏中，自動切換顯示已完成再跳轉
+      target=state.voyages.find(function(v){ return v.vessel===vesselName; });
+      if(!target) return;
+      state.showCompleted=true;
+      renderVoyageList();
+    }
     var el=document.getElementById('voyage-card-'+target.id);
     if(!el) return;
     el.scrollIntoView({behavior:'smooth', block:'center'});
@@ -1323,6 +1444,7 @@
       var v=state.voyages.find(function(x){ return x.id===id; });
       document.getElementById('voyageModalTitle').textContent='編輯航次';
       document.getElementById('f_vessel').value=v.vessel;
+      document.getElementById('f_voyageNumber').value=v.voyageNumber||'';
       document.getElementById('f_transshipPort').value=v.transshipPort;
       document.getElementById('f_etaTransship').value=v.etaTransship||'';
       document.getElementById('f_etdTransship').value=v.etdTransship||'';
@@ -1344,6 +1466,7 @@
       document.getElementById('voyageModalTitle').textContent='新增航次';
       ['f_vessel','f_transshipPort','f_dischargePort1'].forEach(function(id){ document.getElementById(id).selectedIndex=0; });
       ['f_etaTransship','f_etdTransship','f_etaDischarge1','f_etdDischarge1'].forEach(function(id){ document.getElementById(id).value=''; });
+      document.getElementById('f_voyageNumber').value='';
       document.getElementById('f_status').value='待確認';
       document.getElementById('f_notes').value='';
       deleteBtn.style.display='none';
@@ -1378,6 +1501,7 @@
     var record={
       id:editingId||uid(),
       vessel:document.getElementById('f_vessel').value,
+      voyageNumber:document.getElementById('f_voyageNumber').value.trim(),
       transshipPort:document.getElementById('f_transshipPort').value,
       etaTransship:document.getElementById('f_etaTransship').value,
       etdTransship:document.getElementById('f_etdTransship').value,
@@ -1396,7 +1520,7 @@
       var idx=list.findIndex(function(x){ return x.id===record.id; });
       if(idx>=0) list[idx]=record; else list.push(record);
     });
-    renderVoyageList(); renderCalendar();
+    renderVoyageList(); renderCalendar(); renderStats();
     if(!ok) await uiAlert('儲存失敗，請檢查網路後點右上角重試。');
   });
 
@@ -1407,9 +1531,74 @@
       var idx=list.findIndex(function(x){ return x.id===idToDelete; });
       if(idx>=0) list.splice(idx,1);
     });
-    renderVoyageList(); renderCalendar();
+    renderVoyageList(); renderCalendar(); renderStats();
     if(!ok) await uiAlert('刪除尚未同步，請點右上角重試。');
   });
+
+  // ---- 航次統計 ----
+  function renderStats(){
+    var container=document.getElementById('statsContainer');
+    container.innerHTML='';
+    if(state.master.vessels.length===0){
+      container.innerHTML='<div class="empty-state">尚未建立任何凍船，請先到「基礎資料」新增船隻。</div>';
+      return;
+    }
+
+    var totalVoyages=state.voyages.length;
+    var totalCompleted=state.voyages.filter(isCompleted).length;
+    var totalActive=totalVoyages-totalCompleted;
+    var summaryBar=document.createElement('div');
+    summaryBar.className='stat-summary-bar';
+    summaryBar.innerHTML=
+      '<div class="stat-num"><b>'+totalVoyages+'</b><span>總航次數</span></div>'+
+      '<div class="stat-num"><b>'+totalActive+'</b><span>進行中</span></div>'+
+      '<div class="stat-num"><b>'+totalCompleted+'</b><span>已完成</span></div>'+
+      '<div class="stat-num"><b>'+state.master.vessels.length+'</b><span>凍船艘數</span></div>';
+    container.appendChild(summaryBar);
+
+    state.master.vessels.forEach(function(mv){
+      var voyages=state.voyages.filter(function(v){ return v.vessel===mv.name; });
+      var completed=voyages.filter(isCompleted).length;
+      var active=voyages.length-completed;
+      var totalMt=voyages.reduce(function(s,v){
+        var entries=v.cargoEntries||[];
+        return s+entries.reduce(function(s2,c){ return s2+(c.weight!=null?Number(c.weight):0)+((c.hasYfn&&c.yfnWeight!=null)?Number(c.yfnWeight):0); },0);
+      },0);
+
+      var card=document.createElement('div');
+      card.className='stat-card'; card.style.borderLeftColor=vesselColor(mv.name);
+
+      var sorted=voyages.slice().sort(function(a,b){
+        return (b.etaTransship||'').localeCompare(a.etaTransship||'');
+      });
+      var rowsHtml=sorted.map(function(v){
+        var statusColor=STATUS_COLOR[v.status]||'#5A6A8C';
+        return '<tr data-goto="'+v.id+'">'+
+          '<td>'+(v.voyageNumber?escapeHtml(v.voyageNumber):'<span style="color:var(--ink-light);">未填</span>')+'</td>'+
+          '<td>'+fmtDate(v.etaTransship)+'</td>'+
+          '<td><span class="status-pill" style="background:'+statusColor+'22;color:'+statusColor+';">'+escapeHtml(v.status)+'</span></td>'+
+        '</tr>';
+      }).join('');
+
+      card.innerHTML=
+        '<div class="stat-card-top">'+
+          '<div class="stat-vessel"><span class="stat-swatch" style="background:'+vesselColor(mv.name)+'"></span><span class="stat-vessel-name">'+escapeHtml(mv.name)+'</span></div>'+
+          '<div class="stat-nums">'+
+            '<div class="stat-num"><b>'+voyages.length+'</b><span>總航次</span></div>'+
+            '<div class="stat-num"><b>'+active+'</b><span>進行中</span></div>'+
+            '<div class="stat-num"><b>'+completed+'</b><span>已完成</span></div>'+
+            (totalMt>0?'<div class="stat-num"><b>'+totalMt.toLocaleString()+'</b><span>合計 MT</span></div>':'')+
+          '</div>'+
+        '</div>'+
+        (voyages.length?
+          '<table class="stat-table"><thead><tr><th>航次編號</th><th>轉載港 ETA</th><th>狀態</th></tr></thead><tbody>'+rowsHtml+'</tbody></table>'
+          :'<div style="font-size:12px;color:var(--ink-light);margin-top:8px;">尚無航次紀錄</div>');
+      container.appendChild(card);
+      card.querySelectorAll('[data-goto]').forEach(function(tr){
+        tr.addEventListener('click',function(){ openVoyageDetail(tr.dataset.goto); });
+      });
+    });
+  }
 
   // ---- Master Data ----
   function renderMaster(){
@@ -1433,7 +1622,7 @@
       btn.addEventListener('click',async function(){
         var name=state.master.vessels[parseInt(btn.dataset.removeVessel,10)].name;
         var ok=await mutateMaster(function(m){ var idx=m.vessels.findIndex(function(x){ return x.name===name; }); if(idx>=0) m.vessels.splice(idx,1); });
-        renderMaster(); renderCalendar(); renderVoyageList();
+        renderMaster(); renderCalendar(); renderVoyageList(); renderStats();
         if(!ok) await uiAlert('刪除尚未同步，請重試。');
       });
     });
@@ -1458,7 +1647,7 @@
     if(state.master.vessels.some(function(v){ return v.name===val; })){ await uiAlert('此船名已存在。'); return; }
     input.value='';
     var ok=await mutateMaster(function(m){ if(!m.vessels.some(function(v){ return v.name===val; })) m.vessels.push({name:val}); });
-    renderMaster(); renderCalendar(); if(!ok) await uiAlert('新增尚未同步，請重試。');
+    renderMaster(); renderCalendar(); renderStats(); if(!ok) await uiAlert('新增尚未同步，請重試。');
   });
   document.getElementById('addTransshipBtn').addEventListener('click',async function(){
     var input=document.getElementById('newTransshipInput'); var val=input.value.trim(); if(!val) return;
@@ -1480,7 +1669,7 @@
     var newMaster=JSON.parse(JSON.stringify(DEFAULT_MASTER)); var newVoyages=defaultVoyages();
     var ok1=await mutateMaster(function(m){ m.vessels=newMaster.vessels; m.transshipPorts=newMaster.transshipPorts; m.dischargePorts=newMaster.dischargePorts; });
     var ok2=await mutateVoyages(function(list){ list.length=0; newVoyages.forEach(function(v){ list.push(v); }); });
-    renderMaster(); renderVoyageList(); renderCalendar();
+    renderMaster(); renderVoyageList(); renderCalendar(); renderStats();
     if(!ok1||!ok2) await uiAlert('重置尚未完全同步，請重試。');
   });
 
@@ -1499,17 +1688,23 @@
     var wb=XLSX.utils.book_new();
     var voyageRows=state.voyages.map(function(v){
       var dp1=v.dischargePort1||v.dischargePort||''; var eta1=v.etaDischarge1||v.etaDischarge||'';
-      return {'船名':v.vessel,'轉載港':v.transshipPort,'抵轉載港ETA':v.etaTransship||'','離轉載港ETD':v.etdTransship||'','卸貨港1':dp1,'抵卸貨港1 ETA':eta1,'離卸貨港1 ETD':v.etdDischarge1||'','卸貨港2':v.dischargePort2||'','抵卸貨港2 ETA':v.etaDischarge2||'','狀態':v.status,'備註':v.notes||''};
+      return {'船名':v.vessel,'航次編號':v.voyageNumber||'','轉載港':v.transshipPort,'抵轉載港ETA':v.etaTransship||'','離轉載港ETD':v.etdTransship||'','卸貨港1':dp1,'抵卸貨港1 ETA':eta1,'離卸貨港1 ETD':v.etdDischarge1||'','卸貨港2':v.dischargePort2||'','抵卸貨港2 ETA':v.etaDischarge2||'','狀態':v.status,'備註':v.notes||''};
     });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(voyageRows.length?voyageRows:[{'船名':''}]),'航次列表');
     var cargoRows=[];
-    state.voyages.forEach(function(v){ (v.cargoEntries||[]).forEach(function(c){ cargoRows.push({'船名':v.vessel,'轉載港':v.transshipPort,'漁船名稱':c.fishingVessel,'SKJ噸數':c.weight!=null?c.weight:'','YFN':c.hasYfn?'是':'','YFN噸數':(c.hasYfn&&c.yfnWeight!=null)?c.yfnWeight:'','合計噸數':(c.weight!=null||c.yfnWeight!=null)?((c.weight||0)+(c.yfnWeight||0)):'','買主':c.buyer,'Owner Invoice':c.ownerInvoice||''}); }); });
+    state.voyages.forEach(function(v){ (v.cargoEntries||[]).forEach(function(c){ cargoRows.push({'船名':v.vessel,'航次編號':v.voyageNumber||'','轉載港':v.transshipPort,'漁船名稱':c.fishingVessel,'SKJ噸數':c.weight!=null?c.weight:'','YFN':c.hasYfn?'是':'','YFN噸數':(c.hasYfn&&c.yfnWeight!=null)?c.yfnWeight:'','合計噸數':(c.weight!=null||c.yfnWeight!=null)?((c.weight||0)+(c.yfnWeight||0)):'','買主':c.buyer,'Owner Invoice':c.ownerInvoice||''}); }); });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(cargoRows.length?cargoRows:[{'船名':''}]),'轉載漁船明細');
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(state.master.vessels.length?state.master.vessels.map(function(v){ return{'船名':v.name}; }):[{'船名':''}]),'凍船清單');
     var portRows=[];
     state.master.transshipPorts.forEach(function(p){ portRows.push({'類型':'轉載港','港口':p,'國家':''}); });
     state.master.dischargePorts.forEach(function(p){ portRows.push({'類型':'卸貨港','港口':p.name,'國家':p.country}); });
     XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(portRows.length?portRows:[{'類型':''}]),'港口清單');
+    var statsRows=state.master.vessels.map(function(mv){
+      var voyages=state.voyages.filter(function(v){ return v.vessel===mv.name; });
+      var completed=voyages.filter(isCompleted).length;
+      return {'船名':mv.name,'總航次數':voyages.length,'進行中':voyages.length-completed,'已完成':completed};
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(statsRows.length?statsRows:[{'船名':''}]),'航次統計');
     XLSX.writeFile(wb,'凍船排程_'+todayStr()+'.xlsx');
     uiToast('Excel 已匯出');
   });
@@ -1524,10 +1719,10 @@
       var importedVoyages=Array.isArray(parsed.voyages)?parsed.voyages:[];
       if(!(await uiConfirm('匯入後會覆蓋目前的「'+importedMaster.vessels.length+' 艘船 / '+importedVoyages.length+' 筆航次」資料，確定嗎？'))) return;
       state.master=importedMaster; state.voyages=importedVoyages;
-      renderMaster(); renderVoyageList(); renderCalendar();
+      renderMaster(); renderVoyageList(); renderCalendar(); renderStats();
       var ok1=await mutateMaster(function(m){ m.vessels=importedMaster.vessels; m.transshipPorts=importedMaster.transshipPorts; m.dischargePorts=importedMaster.dischargePorts; });
       var ok2=await mutateVoyages(function(list){ list.length=0; importedVoyages.forEach(function(v){ list.push(v); }); });
-      renderMaster(); renderVoyageList(); renderCalendar();
+      renderMaster(); renderVoyageList(); renderCalendar(); renderStats();
       await uiAlert(ok1&&ok2?'匯入完成，已同步到雲端。':'匯入完成，但尚未同步到雲端，請稍後點右上角重試。');
     };
     reader.readAsText(file); e.target.value='';
@@ -1552,7 +1747,7 @@
     var d=new Date();
     document.getElementById('todayLabel').textContent='今日 '+d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
     setSync('busy','連接中…');
-    renderCalendar(); renderVoyageList(); renderMaster();
+    renderCalendar(); renderVoyageList(); renderMaster(); renderStats();
     await loadAllAndRender(false);
   }
   init();
