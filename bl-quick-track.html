@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BL 快速查詢</title>
+<style>
+:root{
+  --bg:#f6f7f9;--card:#fff;--ink:#1d2330;--muted:#6b7280;--line:#e3e6eb;
+  --accent:#1f4e78;--accent-ink:#fff;--ok:#2e7d32;--ok-bg:#e8f5e9;--warn-bg:#fff4d6;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#14171c;--card:#1c2027;--ink:#e6e8eb;--muted:#9aa3ae;--line:#2c323b;
+  --accent:#5b9bd5;--accent-ink:#0d1117;--ok:#81c784;--ok-bg:#1f3322;--warn-bg:#3a3220;
+}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 -apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC",Arial,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 64px}
+h1{font-size:22px;margin:0 0 4px}
+.sub{color:var(--muted);margin:0 0 20px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-bottom:16px}
+details summary{cursor:pointer;font-weight:600}
+textarea{width:100%;min-height:120px;margin-top:10px;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);font:13px/1.4 ui-monospace,Consolas,monospace}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+button,.btn{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:7px;padding:6px 12px;font:inherit;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button:hover{filter:brightness(.95)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar input[type=search]{flex:1;min-width:180px;padding:7px 10px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink);font:inherit}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:4px 10px;border-radius:999px;border:1px solid var(--line);cursor:pointer;font-size:13px;background:var(--card)}
+.chip.on{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.tablewrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}
+th,td{padding:8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle}
+th{font-size:12px;color:var(--muted);font-weight:600;white-space:nowrap}
+td.bl{font-family:ui-monospace,Consolas,monospace;font-weight:600;white-space:nowrap}
+.badge{display:inline-block;padding:2px 8px;border-radius:5px;font-size:12px;font-weight:600;white-space:nowrap;background:var(--bg);border:1px solid var(--line)}
+.how{font-size:12px;color:var(--muted)}
+tr.done td{background:var(--ok-bg)}
+tr.done td.bl{color:var(--ok)}
+td input[type=date]{padding:4px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+td input[type=text]{width:100%;min-width:120px;padding:4px 6px;border:1px solid var(--line);border-radius:6px;background:var(--card);color:var(--ink);font:inherit}
+.nowrap,.how{white-space:nowrap}
+.go{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600;white-space:nowrap}
+.empty{color:var(--muted);text-align:center;padding:28px}
+#toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:8px;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.legend{font-size:13px;color:var(--muted);margin:6px 0 0;padding-left:18px}
+</style>
+</head>
+<body>
+<main>
+  <h1>BL 快速查詢</h1>
+  <p class="sub">按「查詢」會先把 BL 號碼複製到剪貼簿，再開啟該船公司的查詢頁。能自動帶入的網站會直接顯示結果；不能的，到頁面上按 <b>Ctrl+V</b>（Mac：⌘+V）貼上即可。</p>
+
+  <div class="card">
+    <details id="importBox">
+      <summary>貼上 / 更新 BL 清單</summary>
+      <p class="how">直接從 Excel 複製貼上。每行一筆，第一欄是 BL No.，後面可選填：Supplier、Fishing Vessel、Packers、原表 ETA（用 Tab 或逗號分隔）。船公司會依 BL 格式自動判斷。</p>
+      <textarea id="paste" placeholder="275856692&#9;Rawanq&#9;Nour&#9;Unicord&#9;2026-10-02&#10;OOLU4125594440&#10;008GX58361"></textarea>
+      <div class="row">
+        <button class="primary" id="btnAdd">加入清單</button>
+        <button id="btnReplace">取代整份清單</button>
+        <span class="how" id="importMsg"></span>
+      </div>
+    </details>
+  </div>
+
+  <div class="card">
+    <div class="toolbar">
+      <input type="search" id="q" placeholder="搜尋 BL、供應商、漁船…">
+      <div class="chips" id="chips"></div>
+    </div>
+    <div class="toolbar">
+      <label><input type="checkbox" id="hideDone"> 隱藏已查</label>
+      <span class="how" id="count"></span>
+      <span style="flex:1"></span>
+      <button id="btnExport">匯出 CSV</button>
+      <button id="btnClearDone">清除「已查」標記</button>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>BL No.</th><th></th><th>船公司</th><th>Supplier / 漁船 / Packer</th><th>原表 ETA</th>
+         <th>查到的 ETA</th><th>備註</th><th>已查</th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <ul class="legend">
+      <li>「自動帶入」：Maersk、ONE、KMTC、Evergreen 開啟後會直接顯示查詢結果。</li>
+      <li>「需貼上」：Wan Hai、OOCL、Namsung 的網站不支援自動帶入，號碼已在剪貼簿，按 Ctrl+V 貼上後送出。</li>
+      <li>查到的 ETA、備註、已查標記只存在這台電腦的這個瀏覽器裡；要分享或留存請按「匯出 CSV」。</li>
+    </ul>
+  </div>
+</main>
+<div id="toast"></div>
+
+<form id="evgForm" method="post" action="https://ct.shipmentlink.com/servlet/TDB1_CargoTracking.do" target="_blank" style="display:none">
+  <input name="BL"><input name="CNTR" value=""><input name="bkno" value="">
+  <input name="TYPE" value="BL"><input name="SEL" value="s_bl"><input name="NO">
+</form>
+
+<script>
+const PRELOAD = /*PRELOAD*/[];
+
+// 船公司判斷規則：依 BL 格式。strip 是查詢網站要的號碼（去掉船公司前綴）。
+const CARRIERS = [
+  { key:'Maersk', test:b=>/^\d{9}$/.test(b), strip:b=>b, auto:true,
+    open:n=>window.open('https://www.maersk.com/tracking/'+encodeURIComponent(n),'_blank') },
+  { key:'ONE', test:b=>/^ONEY/.test(b), strip:b=>b.slice(4), auto:true,
+    open:n=>window.open('https://ecomm.one-line.com/one-ecom/manage-shipment/cargo-tracking?trakNoParam='+encodeURIComponent(n)+'&trakNoTpCdParam=B','_blank') },
+  { key:'Evergreen', test:b=>/^EGLV/.test(b), strip:b=>b.slice(4), auto:true,
+    open:n=>{ const f=document.getElementById('evgForm'); f.BL.value=n; f.NO.value=n; f.submit(); } },
+  { key:'KMTC', test:b=>/^KMTC/.test(b), strip:b=>b.slice(4), auto:true,
+    open:n=>window.open('https://www.ekmtc.com/index.html#/cargo-tracking?searchType=BL&keyword='+encodeURIComponent(n),'_blank') },
+  { key:'OOCL', test:b=>/^OOLU/.test(b), strip:b=>b.slice(4), auto:false,
+    open:()=>window.open('https://www.oocl.com/eng/ourservices/eservices/cargotracking/Pages/cargotracking.aspx','_blank') },
+  { key:'Namsung', test:b=>/^NSSL/.test(b), strip:b=>b.slice(4), auto:false,
+    open:()=>window.open('https://www.namsung.co.kr/ns/?lang=en','_blank') },
+  { key:'Wan Hai', test:b=>/^(WHLC)?\d{3}[A-Z]{1,2}\d{5,6}$/.test(b), strip:b=>b.replace(/^WHLC/,''), auto:false,
+    open:()=>window.open('https://www.wanhai.com/views/cargoTrack/CargoTrack.xhtml','_blank') },
+];
+const UNKNOWN = { key:'未知', strip:b=>b, auto:false,
+  open:n=>window.open('https://www.google.com/search?q='+encodeURIComponent(n+' tracking'),'_blank') };
+const carrierOf = bl => CARRIERS.find(c=>c.test(bl)) || UNKNOWN;
+
+const LS_LIST='blqt.list', LS_STATE='blqt.state';
+const load=(k,d)=>{ try{ const v=localStorage.getItem(k); return v?JSON.parse(v):d; }catch{ return d; } };
+const save=(k,v)=>{ try{ localStorage.setItem(k,JSON.stringify(v)); }catch{} };
+
+let list = load(LS_LIST, null) || PRELOAD.slice();
+let state = load(LS_STATE, {});   // bl -> {done, eta, note, checkedAt}
+let filter = '全部';
+
+function parsePaste(text){
+  const out=[];
+  for(const line of text.split(/\r?\n/)){
+    if(!line.trim()) continue;
+    const c=line.split(/\t|,/).map(s=>s.trim());
+    const bl=(c[0]||'').toUpperCase().replace(/\s+/g,'');
+    if(!/[0-9]/.test(bl)) continue;   // 跳過表頭或空白列
+    out.push({bl, supplier:c[1]||'', vessel:c[2]||'', packer:c[3]||'', eta:c[4]||''});
+  }
+  return out;
+}
+
+function toast(msg){
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+async function copy(text){
+  try{ await navigator.clipboard.writeText(text); return true; }
+  catch{
+    const ta=document.createElement('textarea'); ta.value=text; document.body.appendChild(ta); ta.select();
+    let ok=false; try{ ok=document.execCommand('copy'); }catch{} ta.remove(); return ok;
+  }
+}
+
+async function go(bl){
+  const c=carrierOf(bl), n=c.strip(bl);
+  const ok=await copy(n);
+  c.open(n);
+  const st=state[bl]||{}; st.checkedAt=new Date().toISOString().slice(0,10); state[bl]=st; save(LS_STATE,state);
+  toast(c.auto ? `已開啟 ${c.key} 查詢 ${n}` + (ok?'（號碼也已複製）':'')
+               : (ok ? `已複製 ${n}，請在 ${c.key} 網站按 Ctrl+V 貼上` : `請在 ${c.key} 網站輸入 ${n}`));
+  render();
+}
+
+function esc(s){ return String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[ch])); }
+
+function render(){
+  const q=document.getElementById('q').value.trim().toLowerCase();
+  const hideDone=document.getElementById('hideDone').checked;
+  const counts={};
+  list.forEach(r=>{ const k=carrierOf(r.bl).key; counts[k]=(counts[k]||0)+1; });
+  const keys=['全部',...Object.keys(counts)];
+  document.getElementById('chips').innerHTML=keys.map(k=>
+    `<span class="chip ${k===filter?'on':''}" data-k="${esc(k)}">${esc(k)} ${k==='全部'?list.length:counts[k]}</span>`).join('');
+
+  const rows=list.filter(r=>{
+    const c=carrierOf(r.bl).key, st=state[r.bl]||{};
+    if(filter!=='全部' && c!==filter) return false;
+    if(hideDone && st.done) return false;
+    if(q && !(r.bl+' '+r.supplier+' '+r.vessel+' '+r.packer).toLowerCase().includes(q)) return false;
+    return true;
+  });
+  const done=list.filter(r=>(state[r.bl]||{}).done).length;
+  document.getElementById('count').textContent=`共 ${list.length} 筆，已查 ${done} 筆`;
+
+  document.getElementById('tbody').innerHTML = rows.length ? rows.map(r=>{
+    const c=carrierOf(r.bl), st=state[r.bl]||{};
+    const info=[r.supplier,r.vessel,r.packer].filter(Boolean).map(esc).join(' / ');
+    return `<tr class="${st.done?'done':''}" data-bl="${esc(r.bl)}">
+      <td class="bl">${esc(r.bl)}</td>
+      <td><button class="go" data-act="go">查詢 ↗</button>${st.checkedAt?`<div class="how">上次 ${esc(st.checkedAt)}</div>`:''}</td>
+      <td><span class="badge">${esc(c.key)}</span><div class="how">${c.auto?'自動帶入':'需貼上'}</div></td>
+      <td>${info||'<span class="how">—</span>'}</td>
+      <td class="nowrap">${esc(r.eta)||'<span class="how">—</span>'}</td>
+      <td><input type="date" data-act="eta" value="${esc(st.eta||'')}"></td>
+      <td><input type="text" data-act="note" value="${esc(st.note||'')}" placeholder="例：已卸船"></td>
+      <td><input type="checkbox" data-act="done" ${st.done?'checked':''}></td>
+    </tr>`;
+  }).join('') : `<tr><td colspan="8" class="empty">沒有符合的 BL。可以在上方「貼上 / 更新 BL 清單」加入。</td></tr>`;
+}
+
+document.getElementById('tbody').addEventListener('click',e=>{
+  const tr=e.target.closest('tr[data-bl]'); if(!tr) return;
+  if(e.target.dataset.act==='go') go(tr.dataset.bl);
+});
+document.getElementById('tbody').addEventListener('change',e=>{
+  const tr=e.target.closest('tr[data-bl]'); if(!tr) return;
+  const bl=tr.dataset.bl, st=state[bl]||{}, act=e.target.dataset.act;
+  if(act==='done') st.done=e.target.checked;
+  if(act==='eta') st.eta=e.target.value;
+  if(act==='note') st.note=e.target.value;
+  state[bl]=st; save(LS_STATE,state);
+  if(act==='done') render();
+});
+document.getElementById('chips').addEventListener('click',e=>{
+  const k=e.target.dataset.k; if(k){ filter=k; render(); }
+});
+document.getElementById('q').addEventListener('input',render);
+document.getElementById('hideDone').addEventListener('change',render);
+
+function doImport(replace){
+  const items=parsePaste(document.getElementById('paste').value);
+  const msg=document.getElementById('importMsg');
+  if(!items.length){ msg.textContent='沒有讀到 BL 號碼'; return; }
+  if(replace) list=[];
+  const have=new Set(list.map(r=>r.bl)); let added=0;
+  for(const it of items){ if(!have.has(it.bl)){ list.push(it); have.add(it.bl); added++; } }
+  save(LS_LIST,list); document.getElementById('paste').value='';
+  msg.textContent=`已加入 ${added} 筆`+(items.length-added?`（${items.length-added} 筆重複略過）`:'');
+  filter='全部'; render();
+}
+document.getElementById('btnAdd').addEventListener('click',()=>doImport(false));
+document.getElementById('btnReplace').addEventListener('click',()=>{
+  if(confirm('確定要用貼上的內容取代整份清單嗎？（已查標記與 ETA 會保留）')) doImport(true);
+});
+document.getElementById('btnClearDone').addEventListener('click',()=>{
+  if(!confirm('清除所有「已查」標記？（查到的 ETA 與備註會保留）')) return;
+  Object.values(state).forEach(s=>{ s.done=false; }); save(LS_STATE,state); render();
+});
+document.getElementById('btnExport').addEventListener('click',()=>{
+  const head=['BL No.','船公司','Supplier','Fishing Vessel','Packers','原表 ETA','查到的 ETA','備註','已查','上次查詢'];
+  const lines=[head].concat(list.map(r=>{ const st=state[r.bl]||{};
+    return [r.bl,carrierOf(r.bl).key,r.supplier,r.vessel,r.packer,r.eta,st.eta||'',st.note||'',st.done?'Y':'',st.checkedAt||'']; }));
+  const csv='﻿'+lines.map(l=>l.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');
+  const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));
+  a.download='BL查詢紀錄_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+});
+
+if(!list.length) document.getElementById('importBox').open=true;
+render();
+</script>
+</body>
+</html>
